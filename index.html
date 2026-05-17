@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>逃离校园</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="game-stage" aria-label="逃离校园游戏区域">
+        <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+        <div class="hud">
+          <div>
+            <span id="levelName">宿舍</span>
+            <span id="levelProgress">1/3</span>
+          </div>
+          <div id="statusText">躲开宿舍阿姨的目光，冲向出口</div>
+          <div id="playerStats">生命 100</div>
+        </div>
+
+        <div class="overlay hidden" id="messageOverlay">
+          <h1 id="messageTitle">逃离校园</h1>
+          <p id="messageText">准备开始</p>
+          <div class="overlay-actions">
+            <button id="restartLevelBtn" type="button">重试本关</button>
+            <button id="restartGameBtn" type="button">从头开始</button>
+          </div>
+        </div>
+
+        <div class="controls" aria-label="触屏控制">
+          <div class="dpad">
+            <button class="control-btn up" data-dir="up" type="button" aria-label="向上">▲</button>
+            <button class="control-btn left" data-dir="left" type="button" aria-label="向左">◀</button>
+            <button class="control-btn down" data-dir="down" type="button" aria-label="向下">▼</button>
+            <button class="control-btn right" data-dir="right" type="button" aria-label="向右">▶</button>
+          </div>
+          <button class="attack-btn" id="attackBtn" type="button" aria-label="攻击">攻击</button>
+        </div>
+      </section>
+      <div class="rotate-tip">请将手机横屏游玩</div>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
