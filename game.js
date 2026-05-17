@@ -78,7 +78,7 @@ const levels = [
     enemies: [
       { type: "guard", x: 360, y: 166, w: 34, h: 42, hp: 2, speed: 76, minX: 318, maxX: 512, dir: 1, detectRange: 210, cooldown: 0 },
       { type: "guard", x: 710, y: 176, w: 34, h: 42, hp: 2, speed: 82, minX: 704, maxX: 836, dir: -1, detectRange: 220, cooldown: 0 },
-      { type: "guard", x: 604, y: 386, w: 34, h: 42, hp: 3, speed: 70, minX: 540, maxX: 792, dir: 1, detectRange: 230, cooldown: 0 },
+      { type: "guard", x: 604, y: 348, w: 34, h: 42, hp: 3, speed: 70, minX: 540, maxX: 792, dir: 1, detectRange: 230, cooldown: 0 },
     ],
   },
   {
