@@ -116,7 +116,16 @@ function initLevel(index) {
   state = "playing";
   obstacles = level.obstacles.map(cloneRect);
   exitZone = cloneRect(level.exit);
-  enemies = level.enemies.map((enemy) => ({ ...enemy, maxHp: enemy.hp || 1, alive: true, hitFlash: 0 }));
+  enemies = level.enemies.map((enemy) => ({
+    ...enemy,
+    maxHp: enemy.hp || 1,
+    alive: true,
+    hitFlash: 0,
+    homeX: enemy.x,
+    homeY: enemy.y,
+    patrolDir: enemy.dir || 1,
+    mode: "patrol",
+  }));
   player = {
     x: level.spawn.x,
     y: level.spawn.y,
@@ -204,15 +213,26 @@ function canOccupy(rect, ignoreEnemy = null) {
 }
 
 function moveEntity(entity, dx, dy, ignoreEnemy = null) {
+  let movedX = false;
+  let movedY = false;
+
   if (dx !== 0) {
     const nextX = { ...entity, x: entity.x + dx };
-    if (canOccupy(nextX, ignoreEnemy)) entity.x = nextX.x;
+    if (canOccupy(nextX, ignoreEnemy)) {
+      entity.x = nextX.x;
+      movedX = true;
+    }
   }
 
   if (dy !== 0) {
     const nextY = { ...entity, y: entity.y + dy };
-    if (canOccupy(nextY, ignoreEnemy)) entity.y = nextY.y;
+    if (canOccupy(nextY, ignoreEnemy)) {
+      entity.y = nextY.y;
+      movedY = true;
+    }
   }
+
+  return { movedX, movedY };
 }
 
 function movePlayer(dt) {
@@ -272,6 +292,45 @@ function canSeePlayer(enemy) {
   return !obstacles.some((obstacle) => lineIntersectsRect(enemyCenter, playerCenter, obstacle));
 }
 
+function patrolGuard(guard, dt) {
+  const dx = guard.patrolDir * guard.speed * dt;
+  const nextX = guard.x + dx;
+  const next = { ...guard, x: nextX };
+
+  if (nextX >= guard.minX && nextX <= guard.maxX && canOccupy(next, guard)) {
+    guard.x = nextX;
+    guard.dir = guard.patrolDir;
+    return;
+  }
+
+  guard.patrolDir *= -1;
+  guard.dir = guard.patrolDir;
+
+  const retryX = guard.x + guard.patrolDir * guard.speed * dt;
+  const retry = { ...guard, x: retryX };
+  if (retryX >= guard.minX && retryX <= guard.maxX && canOccupy(retry, guard)) {
+    guard.x = retryX;
+  }
+}
+
+function moveGuardToward(guard, target, dt) {
+  const guardCenter = centerOf(guard);
+  const dx = target.x - guardCenter.x;
+  const dy = target.y - guardCenter.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  const stepX = (dx / dist) * guard.speed * dt;
+  const stepY = (dy / dist) * guard.speed * dt;
+  const movement = moveEntity(guard, stepX, stepY, guard);
+
+  if (Math.abs(dx) > 1) guard.dir = dx > 0 ? 1 : -1;
+
+  if (!movement.movedX && !movement.movedY) {
+    patrolGuard(guard, dt);
+  }
+
+  return dist;
+}
+
 function updateGuards(dt) {
   const playerCenter = centerOf(player);
 
@@ -285,17 +344,26 @@ function updateGuards(dt) {
     const dx = playerCenter.x - guardCenter.x;
     const dy = playerCenter.y - guardCenter.y;
     const dist = Math.hypot(dx, dy) || 1;
+    const loseRange = guard.detectRange * 1.35;
 
     if (dist <= guard.detectRange) {
-      moveEntity(guard, (dx / dist) * guard.speed * dt, (dy / dist) * guard.speed * dt, guard);
-    } else {
-      const nextX = guard.x + guard.dir * guard.speed * dt;
-      const next = { ...guard, x: nextX };
-      if (nextX < guard.minX || nextX > guard.maxX || !canOccupy(next, guard)) {
-        guard.dir *= -1;
-      } else {
-        guard.x = nextX;
+      guard.mode = "chase";
+    } else if (guard.mode === "chase" && dist > loseRange) {
+      guard.mode = "return";
+    }
+
+    if (guard.mode === "chase") {
+      moveGuardToward(guard, playerCenter, dt);
+    } else if (guard.mode === "return") {
+      const homeTarget = { x: guard.homeX + guard.w / 2, y: guard.homeY + guard.h / 2 };
+      const homeDistance = moveGuardToward(guard, homeTarget, dt);
+      if (homeDistance <= 6) {
+        guard.x = guard.homeX;
+        guard.y = guard.homeY;
+        guard.mode = "patrol";
       }
+    } else {
+      patrolGuard(guard, dt);
     }
 
     if (rectsOverlap(player, guard) && guard.cooldown <= 0 && player.invincible <= 0) {
