@@ -1,5 +1,9 @@
 * {
   box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 html,
@@ -12,6 +16,8 @@ body {
   color: #f6f1df;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -21,6 +27,7 @@ button {
   color: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 .game-shell {
@@ -46,6 +53,10 @@ canvas {
   display: block;
   width: 100%;
   height: 100%;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .hud {

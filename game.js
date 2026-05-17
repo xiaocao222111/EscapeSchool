@@ -539,6 +539,12 @@ window.addEventListener("keyup", (event) => {
   keys.delete(event.key.toLowerCase());
 });
 
+["contextmenu", "selectstart", "dragstart"].forEach((eventName) => {
+  window.addEventListener(eventName, (event) => {
+    event.preventDefault();
+  });
+});
+
 document.querySelectorAll(".control-btn").forEach((button) => {
   const dir = button.dataset.dir;
   const start = (event) => {
