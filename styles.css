@@ -91,6 +91,28 @@ canvas {
   text-overflow: ellipsis;
 }
 
+.sound-toggle {
+  position: absolute;
+  top: 42px;
+  right: 10px;
+  z-index: 3;
+  min-width: 74px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: rgba(23, 30, 36, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff8dc;
+  font-size: clamp(11px, 1.8vw, 14px);
+  font-weight: 800;
+  pointer-events: auto;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.sound-toggle.is-muted {
+  background: rgba(85, 91, 100, 0.78);
+  color: #d9dde4;
+}
+
 .controls {
   position: absolute;
   inset: auto 18px 16px 18px;

@@ -12,12 +12,15 @@ const overlayActionsEl = document.querySelector(".overlay-actions");
 const restartLevelBtn = document.getElementById("restartLevelBtn");
 const restartGameBtn = document.getElementById("restartGameBtn");
 const attackBtn = document.getElementById("attackBtn");
+const soundToggleBtn = document.getElementById("soundToggleBtn");
 
 const WORLD = { width: 960, height: 540 };
 const images = {
   dorm: new Image(),
+  player: new Image(),
 };
 images.dorm.src = "assets/dorm-bg.png";
+images.player.src = "assets/player.png";
 
 const keys = new Set();
 const touchDirs = new Set();
@@ -41,6 +44,7 @@ const audioState = {
   caught: null,
   footsteps: [],
   footstepIndex: 0,
+  muted: false,
 };
 
 const audioFiles = {
@@ -61,7 +65,11 @@ const levels = [
     walkArea: { x: 18, y: 300, w: 1545, h: 95 },
     spawn: { x: 146, y: 326 },
     exit: { x: 1514, y: 326, w: 38, h: 54, label: "出口" },
-    obstacles: [],
+    obstacles: [
+      { x: 236, y: 277, w: 37, h: 66, color: "rgba(255, 38, 16, 0.82)", label: "躲避物1" },
+      { x: 420, y: 277, w: 37, h: 66, color: "rgba(255, 38, 16, 0.82)", label: "躲避物2" },
+      { x: 595, y: 277, w: 37, h: 66, color: "rgba(255, 38, 16, 0.82)", label: "躲避物3" },
+    ],
     enemies: [
       {
         type: "matron",
@@ -150,6 +158,17 @@ function rectInside(inner, outer) {
   return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h;
 }
 
+function getFootBox(entity) {
+  const w = entity.w * 0.7;
+  const h = entity.h * 0.25;
+  return {
+    x: entity.x + (entity.w - w) / 2,
+    y: entity.y + entity.h - h,
+    w,
+    h,
+  };
+}
+
 function updateCamera() {
   const world = getLevelWorld();
   camera.x = clamp(player.x + player.w / 2 - WORLD.width / 2, 0, Math.max(0, world.width - WORLD.width));
@@ -171,10 +190,11 @@ function setupAudio() {
   audioState.caught = createAudio(audioFiles.caught, 0.78);
   audioState.footsteps = audioFiles.footsteps.map((src) => createAudio(src, 0.5));
   audioState.initialized = true;
+  applyAudioMuteState();
 }
 
 function safePlay(audio) {
-  if (!audio) return;
+  if (!audio || audioState.muted) return;
   const playPromise = audio.play();
   if (playPromise && typeof playPromise.catch === "function") {
     playPromise.catch(() => {});
@@ -182,14 +202,42 @@ function safePlay(audio) {
 }
 
 function restartSound(audio) {
-  if (!audio) return;
+  if (!audio || audioState.muted) return;
   audio.currentTime = 0;
   safePlay(audio);
 }
 
 function unlockAudio() {
+  if (audioState.muted) return;
   setupAudio();
   safePlay(audioState.bgm);
+}
+
+function applyAudioMuteState() {
+  if (!audioState.initialized) return;
+
+  const sounds = [audioState.bgm, audioState.caught, ...audioState.footsteps];
+  for (const sound of sounds) {
+    if (sound) sound.muted = audioState.muted;
+  }
+
+  if (audioState.muted && audioState.bgm) {
+    audioState.bgm.pause();
+  }
+}
+
+function updateSoundToggle() {
+  soundToggleBtn.textContent = audioState.muted ? "声音 关" : "声音 开";
+  soundToggleBtn.setAttribute("aria-label", audioState.muted ? "打开声音" : "关闭声音");
+  soundToggleBtn.classList.toggle("is-muted", audioState.muted);
+}
+
+function toggleSound() {
+  audioState.muted = !audioState.muted;
+  setupAudio();
+  applyAudioMuteState();
+  updateSoundToggle();
+  if (!audioState.muted) safePlay(audioState.bgm);
 }
 
 function playFootstepSound() {
@@ -226,7 +274,7 @@ function initLevel(index) {
     y: level.spawn.y,
     w: 30,
     h: 38,
-    speed: 172,
+    speed: 86,
     hp: 100,
     facing: "right",
     attackCooldown: 0,
@@ -303,15 +351,16 @@ function getInputVector() {
 function canOccupy(rect, ignoreEnemy = null) {
   const level = levels[levelIndex];
   const world = getLevelWorld();
-  if (rect.x < 12 || rect.y < 52 || rect.x + rect.w > world.width - 12 || rect.y + rect.h > world.height - 12) {
+  const footBox = getFootBox(rect);
+  if (footBox.x < 12 || footBox.y < 52 || footBox.x + footBox.w > world.width - 12 || footBox.y + footBox.h > world.height - 12) {
     return false;
   }
 
-  if (level.walkArea && !rectInside(rect, level.walkArea)) return false;
+  if (level.walkArea && !rectInside(footBox, level.walkArea)) return false;
 
-  if (obstacles.some((obstacle) => rectsOverlap(rect, obstacle))) return false;
+  if (obstacles.some((obstacle) => rectsOverlap(footBox, obstacle))) return false;
 
-  return !enemies.some((enemy) => enemy !== ignoreEnemy && enemy.alive && rectsOverlap(rect, enemy));
+  return !enemies.some((enemy) => enemy !== ignoreEnemy && enemy.alive && rectsOverlap(footBox, getFootBox(enemy)));
 }
 
 function moveEntity(entity, dx, dy, ignoreEnemy = null) {
@@ -640,15 +689,26 @@ function drawExit() {
 
 function drawPlayer() {
   const flashing = player.invincible > 0 && Math.floor(player.invincible * 16) % 2 === 0;
-  ctx.fillStyle = flashing ? "#ffffff" : "#4cc9f0";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-  ctx.fillStyle = "#083344";
-  ctx.fillRect(player.x + 7, player.y + 8, player.w - 14, 7);
+  let labelY = player.y - 4;
+  if (images.player.complete && images.player.naturalWidth > 0 && !flashing) {
+    const spriteScale = 0.8;
+    const spriteW = images.player.naturalWidth * spriteScale;
+    const spriteH = images.player.naturalHeight * spriteScale;
+    const spriteX = player.x + player.w / 2 - spriteW / 2;
+    const spriteY = player.y + player.h - spriteH;
+    ctx.drawImage(images.player, spriteX, spriteY, spriteW, spriteH);
+    labelY = spriteY - 4;
+  } else {
+    ctx.fillStyle = flashing ? "#ffffff" : "#4cc9f0";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = "#083344";
+    ctx.fillRect(player.x + 7, player.y + 8, player.w - 14, 7);
+  }
   ctx.fillStyle = "#ffffff";
   ctx.font = "13px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
-  ctx.fillText("玩家", player.x + player.w / 2, player.y - 4);
+  ctx.fillText("玩家", player.x + player.w / 2, labelY);
 }
 
 function drawMatron(enemy) {
@@ -778,8 +838,15 @@ attackBtn.addEventListener("pointercancel", () => {
   attackBtn.classList.remove("active");
 });
 
+soundToggleBtn.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  toggleSound();
+});
+
 restartLevelBtn.addEventListener("click", () => initLevel(levelIndex));
 restartGameBtn.addEventListener("click", restartGame);
 
+updateSoundToggle();
 initLevel(0);
 requestAnimationFrame(loop);
