@@ -14,6 +14,11 @@ const restartGameBtn = document.getElementById("restartGameBtn");
 const attackBtn = document.getElementById("attackBtn");
 
 const WORLD = { width: 960, height: 540 };
+const images = {
+  dorm: new Image(),
+};
+images.dorm.src = "assets/dorm-bg.png";
+
 const keys = new Set();
 const touchDirs = new Set();
 
@@ -27,6 +32,22 @@ let exitZone;
 let attackEffect = null;
 let damageFlash = 0;
 let failureRestartTimer = null;
+let camera = { x: 0, y: 0 };
+let footstepTimer = 0;
+
+const audioState = {
+  initialized: false,
+  bgm: null,
+  caught: null,
+  footsteps: [],
+  footstepIndex: 0,
+};
+
+const audioFiles = {
+  bgm: "assets/audio/bgm.wav",
+  caught: "assets/audio/caught.wav",
+  footsteps: ["assets/audio/footstep-1.wav", "assets/audio/footstep-2.wav"],
+};
 
 const failureResults = ["全校通报批评", "叫家长", "写检讨"];
 
@@ -35,30 +56,38 @@ const levels = [
     name: "宿舍",
     objective: "躲开宿舍阿姨的目光，冲向右侧出口",
     background: "#314354",
-    spawn: { x: 72, y: 430 },
-    exit: { x: 884, y: 218, w: 52, h: 104, label: "出口" },
-    obstacles: [
-      { x: 112, y: 74, w: 144, h: 52, color: "#86a4be", label: "床" },
-      { x: 112, y: 168, w: 144, h: 52, color: "#86a4be", label: "床" },
-      { x: 112, y: 262, w: 144, h: 52, color: "#86a4be", label: "床" },
-      { x: 344, y: 86, w: 72, h: 148, color: "#b08b5d", label: "柜" },
-      { x: 510, y: 300, w: 170, h: 50, color: "#bf9a6a", label: "桌" },
-      { x: 710, y: 92, w: 64, h: 190, color: "#7e9b73", label: "书架" },
-      { x: 312, y: 392, w: 180, h: 44, color: "#bf9a6a", label: "长桌" },
-    ],
+    backgroundImage: images.dorm,
+    world: { width: 1581, height: 540 },
+    walkArea: { x: 18, y: 300, w: 1545, h: 95 },
+    spawn: { x: 146, y: 326 },
+    exit: { x: 1514, y: 326, w: 38, h: 54, label: "出口" },
+    obstacles: [],
     enemies: [
       {
         type: "matron",
         x: 360,
-        y: 250,
+        y: 334,
         w: 34,
         h: 42,
-        speed: 96,
-        minX: 300,
+        speed: 88,
+        minX: 220,
         maxX: 760,
         dir: 1,
-        visionW: 260,
-        visionH: 110,
+        visionW: 230,
+        visionH: 92,
+      },
+      {
+        type: "matron",
+        x: 1040,
+        y: 334,
+        w: 34,
+        h: 42,
+        speed: 92,
+        minX: 820,
+        maxX: 1370,
+        dir: -1,
+        visionW: 230,
+        visionH: 92,
       },
     ],
   },
@@ -109,6 +138,72 @@ function cloneRect(rect) {
   return { ...rect };
 }
 
+function getLevelWorld(level = levels[levelIndex]) {
+  return level.world || WORLD;
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function rectInside(inner, outer) {
+  return inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h;
+}
+
+function updateCamera() {
+  const world = getLevelWorld();
+  camera.x = clamp(player.x + player.w / 2 - WORLD.width / 2, 0, Math.max(0, world.width - WORLD.width));
+  camera.y = clamp(player.y + player.h / 2 - WORLD.height / 2, 0, Math.max(0, world.height - WORLD.height));
+}
+
+function createAudio(src, volume, loop = false) {
+  const audio = new Audio(src);
+  audio.preload = "auto";
+  audio.volume = volume;
+  audio.loop = loop;
+  return audio;
+}
+
+function setupAudio() {
+  if (audioState.initialized) return;
+
+  audioState.bgm = createAudio(audioFiles.bgm, 0.42, true);
+  audioState.caught = createAudio(audioFiles.caught, 0.78);
+  audioState.footsteps = audioFiles.footsteps.map((src) => createAudio(src, 0.5));
+  audioState.initialized = true;
+}
+
+function safePlay(audio) {
+  if (!audio) return;
+  const playPromise = audio.play();
+  if (playPromise && typeof playPromise.catch === "function") {
+    playPromise.catch(() => {});
+  }
+}
+
+function restartSound(audio) {
+  if (!audio) return;
+  audio.currentTime = 0;
+  safePlay(audio);
+}
+
+function unlockAudio() {
+  setupAudio();
+  safePlay(audioState.bgm);
+}
+
+function playFootstepSound() {
+  setupAudio();
+  const sound = audioState.footsteps[audioState.footstepIndex % audioState.footsteps.length];
+  audioState.footstepIndex += 1;
+  restartSound(sound);
+}
+
+function playCaughtSound() {
+  setupAudio();
+  restartSound(audioState.caught);
+}
+
 function initLevel(index) {
   clearFailureRestartTimer();
   const level = levels[index];
@@ -137,6 +232,9 @@ function initLevel(index) {
     attackCooldown: 0,
     invincible: 0,
   };
+  camera = { x: 0, y: 0 };
+  footstepTimer = 0;
+  updateCamera();
   attackEffect = null;
   damageFlash = 0;
   hideOverlay();
@@ -203,9 +301,13 @@ function getInputVector() {
 }
 
 function canOccupy(rect, ignoreEnemy = null) {
-  if (rect.x < 12 || rect.y < 52 || rect.x + rect.w > WORLD.width - 12 || rect.y + rect.h > WORLD.height - 12) {
+  const level = levels[levelIndex];
+  const world = getLevelWorld();
+  if (rect.x < 12 || rect.y < 52 || rect.x + rect.w > world.width - 12 || rect.y + rect.h > world.height - 12) {
     return false;
   }
+
+  if (level.walkArea && !rectInside(rect, level.walkArea)) return false;
 
   if (obstacles.some((obstacle) => rectsOverlap(rect, obstacle))) return false;
 
@@ -237,7 +339,18 @@ function moveEntity(entity, dx, dy, ignoreEnemy = null) {
 
 function movePlayer(dt) {
   const input = getInputVector();
-  moveEntity(player, input.x * player.speed * dt, input.y * player.speed * dt);
+  const movement = moveEntity(player, input.x * player.speed * dt, input.y * player.speed * dt);
+  const isMoving = movement.movedX || movement.movedY;
+
+  if (levelIndex === 0 && isMoving) {
+    footstepTimer -= dt;
+    if (footstepTimer <= 0) {
+      playFootstepSound();
+      footstepTimer = 0.28;
+    }
+  } else {
+    footstepTimer = 0;
+  }
 }
 
 function updateMatron(enemy, dt) {
@@ -422,6 +535,7 @@ function attack() {
 
 function failLevel(reason) {
   if (state !== "playing") return;
+  if (levelIndex === 0) playCaughtSound();
   const result = failureResults[Math.floor(Math.random() * failureResults.length)];
   const failedLevelIndex = levelIndex;
   showOverlay("逃离失败", `${reason}。处罚结果：${result}。2 秒后自动回到本关开始。`, false, false);
@@ -458,10 +572,13 @@ function update(dt) {
   movePlayer(dt);
   updateEnemies(dt);
   checkExit();
+  updateCamera();
   updateHud();
 }
 
 function drawRect(rect, color, label) {
+  if (rect.hidden) return;
+
   ctx.fillStyle = color;
   ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
   ctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
@@ -481,18 +598,28 @@ function drawBackground(level) {
   ctx.fillStyle = level.background;
   ctx.fillRect(0, 0, WORLD.width, WORLD.height);
 
+  if (level.backgroundImage) {
+    const image = level.backgroundImage;
+    const world = getLevelWorld(level);
+    if (image.complete && image.naturalWidth > 0) {
+      ctx.drawImage(image, 0, 0, world.width, world.height);
+    }
+    return;
+  }
+
   ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
   ctx.lineWidth = 1;
-  for (let x = 0; x <= WORLD.width; x += 48) {
+  const world = getLevelWorld(level);
+  for (let x = 0; x <= world.width; x += 48) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, WORLD.height);
+    ctx.lineTo(x, world.height);
     ctx.stroke();
   }
-  for (let y = 0; y <= WORLD.height; y += 48) {
+  for (let y = 0; y <= world.height; y += 48) {
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(WORLD.width, y);
+    ctx.lineTo(world.width, y);
     ctx.stroke();
   }
 }
@@ -520,8 +647,8 @@ function drawPlayer() {
   ctx.fillStyle = "#ffffff";
   ctx.font = "13px sans-serif";
   ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.fillText("玩家", player.x + player.w / 2, player.y + player.h + 4);
+  ctx.textBaseline = "bottom";
+  ctx.fillText("玩家", player.x + player.w / 2, player.y - 4);
 }
 
 function drawMatron(enemy) {
@@ -568,6 +695,8 @@ function drawPlaceholderGate() {
 
 function render() {
   const level = levels[levelIndex];
+  ctx.save();
+  ctx.translate(-camera.x, -camera.y);
   drawBackground(level);
   drawExit();
   for (const obstacle of obstacles) drawRect(obstacle, obstacle.color, obstacle.label);
@@ -579,6 +708,7 @@ function render() {
   drawAttackEffect();
   drawPlayer();
   drawPlaceholderGate();
+  ctx.restore();
 
   if (damageFlash > 0) {
     ctx.fillStyle = `rgba(255, 0, 0, ${damageFlash * 1.5})`;
@@ -595,6 +725,7 @@ function loop(time) {
 }
 
 window.addEventListener("keydown", (event) => {
+  unlockAudio();
   const key = event.key.toLowerCase();
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", " ", "j"].includes(key)) {
     event.preventDefault();
@@ -617,6 +748,7 @@ document.querySelectorAll(".control-btn").forEach((button) => {
   const dir = button.dataset.dir;
   const start = (event) => {
     event.preventDefault();
+    unlockAudio();
     touchDirs.add(dir);
     button.classList.add("active");
   };
@@ -633,6 +765,7 @@ document.querySelectorAll(".control-btn").forEach((button) => {
 
 attackBtn.addEventListener("pointerdown", (event) => {
   event.preventDefault();
+  unlockAudio();
   attackBtn.classList.add("active");
   attack();
 });
