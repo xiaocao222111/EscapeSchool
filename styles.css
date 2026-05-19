@@ -91,7 +91,8 @@ canvas {
   text-overflow: ellipsis;
 }
 
-.sound-toggle {
+.sound-toggle,
+.debug-toggle {
   position: absolute;
   top: 42px;
   right: 10px;
@@ -108,9 +109,18 @@ canvas {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
+.debug-toggle {
+  top: 78px;
+}
+
 .sound-toggle.is-muted {
   background: rgba(85, 91, 100, 0.78);
   color: #d9dde4;
+}
+
+.debug-toggle.is-enabled {
+  background: rgba(238, 181, 73, 0.88);
+  color: #2b1d0e;
 }
 
 .controls {
