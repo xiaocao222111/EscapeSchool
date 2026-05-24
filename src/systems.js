@@ -1,10 +1,11 @@
 import { playCaughtSound, playFootstepSound } from "./audio.js";
-import { balance, debug, failureResults, WORLD } from "./config.js";
+import { activeLevelCount, balance, debug, failureResults, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import {
   centerOf,
   clamp,
   cloneRect,
+  getActorBlockBox,
   getFootBox,
   getLevelWorld,
   getPlayerSightPoint,
@@ -119,7 +120,13 @@ function canOccupy(rect, ignoreEnemy = null) {
 
   if (state.obstacles.some((obstacle) => !obstacle.hidden && rectsOverlap(footBox, obstacle))) return false;
 
-  return !state.enemies.some((enemy) => enemy !== ignoreEnemy && enemy.alive && rectsOverlap(footBox, getFootBox(enemy)));
+  const actorBox = getActorBlockBox(rect, ignoreEnemy ? rect : state.player);
+  if (ignoreEnemy && state.player && rectsOverlap(actorBox, getActorBlockBox(state.player))) return false;
+  return !state.enemies.some((enemy) => (
+    enemy !== ignoreEnemy
+    && enemy.alive
+    && rectsOverlap(actorBox, getActorBlockBox(enemy))
+  ));
 }
 
 function moveEntity(entity, dx, dy, ignoreEnemy = null) {
@@ -149,6 +156,7 @@ function movePlayer(dt) {
   const input = getInputVector();
   const movement = moveEntity(state.player, input.x * state.player.speed * dt, input.y * state.player.speed * dt);
   const isMoving = movement.movedX || movement.movedY;
+  state.player.isMoving = isMoving;
 
   if (state.levelIndex === 0 && isMoving) {
     state.footstepTimer -= dt;
@@ -431,12 +439,12 @@ function checkExit() {
     return;
   }
 
-  if (state.levelIndex < levels.length - 1) {
+  if (state.levelIndex < activeLevelCount - 1) {
     initLevel(state.levelIndex + 1);
     return;
   }
 
-  showOverlay("成功逃离学校", "趁门卫打瞌睡，你顺利溜出了学校。", false, true);
+  showOverlay("成功逃离学校", "你已经甩开保安，暂时逃出了学校。", false, true);
 }
 
 export function update(dt) {

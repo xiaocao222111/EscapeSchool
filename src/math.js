@@ -37,6 +37,26 @@ export function getFootBox(entity) {
   };
 }
 
+export function getActorBlockBox(entity, visualSource = entity) {
+  const feet = getFeetPoint(entity);
+  let spriteW = entity.w;
+  let spriteH = entity.h;
+
+  if (visualSource === state.player) {
+    spriteW = images.player.complete && images.player.naturalWidth > 0 ? images.player.naturalWidth : entity.w;
+    spriteH = images.player.complete && images.player.naturalHeight > 0 ? images.player.naturalHeight : entity.h;
+  }
+
+  const w = Math.max(entity.w * 0.9, Math.min(spriteW * 0.58, 52));
+  const h = Math.max(entity.h * 0.42, Math.min(spriteH * 0.34, 42));
+  return {
+    x: feet.x - w / 2,
+    y: feet.y - h,
+    w,
+    h,
+  };
+}
+
 export function getFeetPoint(entity) {
   const footBox = getFootBox(entity);
   return {

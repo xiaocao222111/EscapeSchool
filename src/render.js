@@ -2,6 +2,7 @@ import { balance, debug, images, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import { getFeetPoint, getLevelWorld, getSpriteRectFromFeet } from "./math.js";
 import { state } from "./state.js";
+import { drawSpineActor } from "./spineRenderer.js";
 import { canSeePlayer, getDoormanState, getMatronVision } from "./systems.js";
 import { ctx } from "./ui.js";
 import { drawWalkMaskDebug } from "./walkMask.js";
@@ -115,9 +116,16 @@ function drawExit() {
 
 function drawPlayer() {
   const player = state.player;
-  const flashing = player.invincible > 0 && Math.floor(player.invincible * 16) % 2 === 0;
+  const hurt = player.invincible > 0;
   let spriteRect = getSpriteRectFromFeet(player, player.w, player.h);
-  if (images.player.complete && images.player.naturalWidth > 0 && !flashing) {
+  const animation = state.attackEffect ? "attack" : player.invincible > 0 ? "hurt" : player.isMoving ? "walk" : "idle";
+  const drewSpine = drawSpineActor(ctx, "player", player, animation, { facing: player.facingX });
+
+  if (drewSpine) {
+    if (images.player.complete && images.player.naturalWidth > 0) {
+      spriteRect = getSpriteRectFromFeet(player, images.player.naturalWidth, images.player.naturalHeight);
+    }
+  } else if (images.player.complete && images.player.naturalWidth > 0) {
     const spriteW = images.player.naturalWidth;
     const spriteH = images.player.naturalHeight;
     const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
@@ -133,11 +141,19 @@ function drawPlayer() {
     spriteRect = sprite;
   } else {
     const sprite = getSpriteRectFromFeet(player, player.w, player.h);
-    ctx.fillStyle = flashing ? "#ffffff" : "#4cc9f0";
+    ctx.fillStyle = "#4cc9f0";
     ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
     ctx.fillStyle = "#083344";
     ctx.fillRect(sprite.x + 7, sprite.y + 8, sprite.w - 14, 7);
     spriteRect = sprite;
+  }
+
+  if (hurt) {
+    ctx.save();
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.fillStyle = "rgba(255, 72, 72, 0.42)";
+    ctx.fillRect(spriteRect.x, spriteRect.y, spriteRect.w, spriteRect.h);
+    ctx.restore();
   }
 
   drawPlayerHpBar(spriteRect);
@@ -164,9 +180,10 @@ function drawActorRect(entity, color, label) {
 
 function drawMatron(enemy) {
   const vision = getMatronVision(enemy);
+  const seesPlayer = canSeePlayer(enemy);
   const startAngle = vision.angle - vision.halfAngle;
   const endAngle = vision.angle + vision.halfAngle;
-  ctx.fillStyle = canSeePlayer(enemy) ? "rgba(255, 52, 52, 0.48)" : "rgba(255, 222, 89, 0.25)";
+  ctx.fillStyle = seesPlayer ? "rgba(255, 52, 52, 0.48)" : "rgba(255, 222, 89, 0.25)";
   ctx.beginPath();
   ctx.moveTo(vision.origin.x, vision.origin.y);
   ctx.arc(vision.origin.x, vision.origin.y, vision.range, startAngle, endAngle);
@@ -177,7 +194,9 @@ function drawMatron(enemy) {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  drawActorRect(enemy, "#d94679", "宿管");
+  if (!drawSpineActor(ctx, "matron", enemy, seesPlayer ? "alert" : "walk")) {
+    drawActorRect(enemy, "#d94679", "宿管");
+  }
 }
 
 function drawDoorman(enemy) {
@@ -200,7 +219,9 @@ function drawDoorman(enemy) {
   }
 
   const color = doormanState.awake ? "#ef4444" : doormanState.warning ? "#f59e0b" : "#64748b";
-  drawActorRect(enemy, color, "门卫");
+  if (!drawSpineActor(ctx, "doorman", enemy, doormanState.awake ? "alert" : "sleep")) {
+    drawActorRect(enemy, color, "门卫");
+  }
 
   const feet = getFeetPoint(enemy);
   ctx.fillStyle = doormanState.awake ? "#ffe8e8" : "#f8fafc";
@@ -220,7 +241,10 @@ function drawGuard(enemy) {
     ctx.lineWidth = 2;
     ctx.strokeRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
   }
-  drawRect({ ...enemy, ...sprite }, color, "保安");
+  const animation = enemy.attackFlash > 0 ? "attack" : enemy.hitFlash > 0 ? "hurt" : "walk";
+  if (!drawSpineActor(ctx, "guard", enemy, animation)) {
+    drawRect({ ...enemy, ...sprite }, color, "保安");
+  }
 
   ctx.fillStyle = "#1f2937";
   ctx.fillRect(sprite.x, sprite.y - 9, sprite.w, 5);
@@ -237,6 +261,16 @@ function drawAttackEffect() {
   ctx.strokeRect(state.attackEffect.x, state.attackEffect.y, state.attackEffect.w, state.attackEffect.h);
 }
 
+function drawActor(actor) {
+  if (actor === state.player) {
+    drawPlayer();
+    return;
+  }
+  if (actor.type === "matron") drawMatron(actor);
+  if (actor.type === "guard") drawGuard(actor);
+  if (actor.type === "doorman") drawDoorman(actor);
+}
+
 export function render() {
   const level = levels[state.levelIndex];
   ctx.save();
@@ -244,14 +278,10 @@ export function render() {
   drawBackground(level);
   drawWalkAreaDebug(level);
   drawExit();
-  for (const enemy of state.enemies) {
-    if (!enemy.alive) continue;
-    if (enemy.type === "matron") drawMatron(enemy);
-    if (enemy.type === "guard") drawGuard(enemy);
-    if (enemy.type === "doorman") drawDoorman(enemy);
-  }
   drawAttackEffect();
-  drawPlayer();
+  const actors = [state.player, ...state.enemies.filter((enemy) => enemy.alive)]
+    .sort((a, b) => getFeetPoint(a).y - getFeetPoint(b).y);
+  for (const actor of actors) drawActor(actor);
   for (const obstacle of state.obstacles) drawRect(obstacle, obstacle.color, obstacle.label);
   ctx.restore();
 
