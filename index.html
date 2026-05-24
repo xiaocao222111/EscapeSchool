@@ -8,8 +8,13 @@
   </head>
   <body>
     <main class="game-shell">
-      <section class="game-stage" aria-label="逃离校园游戏区域">
+      <section class="game-stage is-start-screen" id="gameStage" aria-label="逃离校园游戏区域">
         <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+        <div class="start-screen" id="startScreen">
+          <h1>逃离校园</h1>
+          <button class="start-btn" id="startGameBtn" type="button">开始游戏</button>
+        </div>
 
         <div class="hud">
           <div>
@@ -21,6 +26,10 @@
         </div>
         <button class="sound-toggle" id="soundToggleBtn" type="button" aria-label="关闭声音">声音 开</button>
         <button class="debug-toggle" id="invincibleToggleBtn" type="button" aria-label="打开无敌">无敌 关</button>
+        <label class="level-select-wrap" aria-label="调试关卡选择">
+          <span>关卡</span>
+          <select id="levelSelect"></select>
+        </label>
 
         <div class="overlay hidden" id="messageOverlay">
           <h1 id="messageTitle">逃离校园</h1>
@@ -38,7 +47,7 @@
             <button class="control-btn down" data-dir="down" type="button" aria-label="向下">▼</button>
             <button class="control-btn right" data-dir="right" type="button" aria-label="向右">▶</button>
           </div>
-          <button class="attack-btn" id="attackBtn" type="button" aria-label="攻击">攻击</button>
+          <button class="attack-btn is-hidden" id="attackBtn" type="button" aria-label="攻击" aria-hidden="true" style="display: none;">攻击</button>
         </div>
       </section>
       <div class="rotate-tip">请将手机横屏游玩</div>

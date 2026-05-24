@@ -1,5 +1,5 @@
 import { audioState } from "./audio.js";
-import { debug } from "./config.js";
+import { balance, debug } from "./config.js";
 import { levels } from "./levels.js";
 import { state } from "./state.js";
 
@@ -7,6 +7,9 @@ export const canvas = document.getElementById("gameCanvas");
 export const ctx = canvas.getContext("2d");
 
 export const elements = {
+  gameStage: document.getElementById("gameStage"),
+  startScreen: document.getElementById("startScreen"),
+  startGameBtn: document.getElementById("startGameBtn"),
   levelName: document.getElementById("levelName"),
   levelProgress: document.getElementById("levelProgress"),
   statusText: document.getElementById("statusText"),
@@ -20,10 +23,22 @@ export const elements = {
   attackBtn: document.getElementById("attackBtn"),
   soundToggleBtn: document.getElementById("soundToggleBtn"),
   invincibleToggleBtn: document.getElementById("invincibleToggleBtn"),
+  levelSelect: document.getElementById("levelSelect"),
 };
 
 export function hideOverlay() {
   elements.overlay.classList.add("hidden");
+}
+
+export function showStartScreen() {
+  elements.startScreen.classList.remove("hidden");
+  elements.gameStage.classList.add("is-start-screen");
+  state.gameState = "start";
+}
+
+export function hideStartScreen() {
+  elements.startScreen.classList.add("hidden");
+  elements.gameStage.classList.remove("is-start-screen");
 }
 
 export function showOverlay(title, text, keepPlaying = false, showActions = true) {
@@ -39,12 +54,16 @@ export function updateHud() {
   elements.levelName.textContent = level.name;
   elements.levelProgress.textContent = `${state.levelIndex + 1}/3`;
   elements.statusText.textContent = level.objective;
+  elements.levelSelect.value = String(state.levelIndex);
+  elements.attackBtn.classList.toggle("is-hidden", state.levelIndex !== 1);
+  elements.attackBtn.style.display = state.levelIndex === 1 ? "" : "none";
+  elements.attackBtn.setAttribute("aria-hidden", state.levelIndex !== 1 ? "true" : "false");
 
   if (state.levelIndex === 1) {
     const guardCount = state.enemies.filter((enemy) => enemy.alive).length;
-    elements.playerStats.textContent = `生命 ${Math.max(0, Math.ceil(state.player.hp))} | 保安 ${guardCount}`;
+    elements.playerStats.textContent = `生命 ${Math.max(0, Math.ceil(state.player.hp))}/${balance.playerMaxHp} | 保安 ${guardCount}`;
   } else {
-    elements.playerStats.textContent = `生命 ${Math.max(0, Math.ceil(state.player.hp))}`;
+    elements.playerStats.textContent = `生命 ${Math.max(0, Math.ceil(state.player.hp))}/${balance.playerMaxHp}`;
   }
 }
 
@@ -63,4 +82,13 @@ export function updateInvincibleToggle() {
 export function toggleInvincible() {
   debug.invincible = !debug.invincible;
   updateInvincibleToggle();
+}
+
+export function setupLevelSelect() {
+  elements.levelSelect.replaceChildren(...levels.map((level, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${index + 1}. ${level.name}`;
+    return option;
+  }));
 }

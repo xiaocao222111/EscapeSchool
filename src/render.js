@@ -1,15 +1,23 @@
-import { debug, images, WORLD } from "./config.js";
+import { balance, debug, images, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import { getFeetPoint, getLevelWorld, getSpriteRectFromFeet } from "./math.js";
 import { state } from "./state.js";
-import { canSeePlayer, getMatronVision } from "./systems.js";
+import { canSeePlayer, getDoormanState, getMatronVision } from "./systems.js";
 import { ctx } from "./ui.js";
+import { drawWalkMaskDebug } from "./walkMask.js";
 
 function drawRect(rect, color, label) {
-  if (rect.hidden) return;
+  if (rect.hidden) {
+    if (debug.showWalkArea && state.levelIndex === 0) drawHiddenDebugRect(rect, label);
+    return;
+  }
 
   if (rect.image && rect.image.complete && rect.image.naturalWidth > 0) {
-    ctx.drawImage(rect.image, rect.x, rect.y, rect.w, rect.h);
+    const drawW = rect.drawW || rect.image.naturalWidth;
+    const drawH = rect.drawH || rect.image.naturalHeight;
+    const drawX = rect.x + rect.w / 2 - drawW / 2;
+    const drawY = rect.y + rect.h - drawH;
+    ctx.drawImage(rect.image, drawX, drawY, drawW, drawH);
     return;
   }
 
@@ -26,6 +34,20 @@ function drawRect(rect, color, label) {
     ctx.textBaseline = "middle";
     ctx.fillText(label, rect.x + rect.w / 2, rect.y + rect.h / 2);
   }
+}
+
+function drawHiddenDebugRect(rect, label) {
+  ctx.fillStyle = "rgba(59, 130, 246, 0.28)";
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  ctx.strokeStyle = "rgba(147, 197, 253, 0.95)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+  ctx.fillStyle = "#e0f2fe";
+  ctx.font = "11px sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(`${label || "hidden"} x:${Math.round(rect.x)} y:${Math.round(rect.y)}`, rect.x + 3, rect.y + 3);
+  ctx.fillText(`w:${Math.round(rect.w)} h:${Math.round(rect.h)}`, rect.x + 3, rect.y + 16);
 }
 
 function drawBackground(level) {
@@ -59,6 +81,7 @@ function drawBackground(level) {
 }
 
 function drawWalkAreaDebug(level) {
+  if (debug.showWalkArea) drawWalkMaskDebug(ctx, level);
   if (!debug.showWalkArea || !level.walkArea) return;
 
   const area = level.walkArea;
@@ -94,12 +117,22 @@ function drawPlayer() {
   const player = state.player;
   const flashing = player.invincible > 0 && Math.floor(player.invincible * 16) % 2 === 0;
   let labelY = player.y - 4;
+  let spriteRect = getSpriteRectFromFeet(player, player.w, player.h);
   if (images.player.complete && images.player.naturalWidth > 0 && !flashing) {
     const spriteScale = 0.8;
     const spriteW = images.player.naturalWidth * spriteScale;
     const spriteH = images.player.naturalHeight * spriteScale;
     const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
-    ctx.drawImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h);
+    if (player.facingX === "left") {
+      ctx.save();
+      ctx.translate(sprite.x + sprite.w, sprite.y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(images.player, 0, 0, sprite.w, sprite.h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h);
+    }
+    spriteRect = sprite;
     labelY = sprite.y - 4;
   } else {
     const sprite = getSpriteRectFromFeet(player, player.w, player.h);
@@ -107,13 +140,30 @@ function drawPlayer() {
     ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
     ctx.fillStyle = "#083344";
     ctx.fillRect(sprite.x + 7, sprite.y + 8, sprite.w - 14, 7);
+    spriteRect = sprite;
     labelY = sprite.y - 4;
   }
+
+  drawPlayerHpBar(spriteRect);
   ctx.fillStyle = "#ffffff";
   ctx.font = "13px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "bottom";
-  ctx.fillText("玩家", getFeetPoint(player).x, labelY);
+  ctx.fillText("玩家", getFeetPoint(player).x, labelY - 9);
+}
+
+function drawPlayerHpBar(sprite) {
+  const barW = 42;
+  const barH = 5;
+  const x = sprite.x + sprite.w / 2 - barW / 2;
+  const y = sprite.y - 9;
+  const ratio = Math.max(0, Math.min(1, state.player.hp / balance.playerMaxHp));
+  ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
+  ctx.fillRect(x - 1, y - 1, barW + 2, barH + 2);
+  ctx.fillStyle = "#ef4444";
+  ctx.fillRect(x, y, barW, barH);
+  ctx.fillStyle = ratio > 0.35 ? "#22c55e" : "#facc15";
+  ctx.fillRect(x, y, barW * ratio, barH);
 }
 
 function drawActorRect(entity, color, label) {
@@ -139,9 +189,46 @@ function drawMatron(enemy) {
   drawActorRect(enemy, "#d94679", "宿管");
 }
 
+function drawDoorman(enemy) {
+  const doormanState = getDoormanState(enemy);
+
+  if (doormanState.awake) {
+    const vision = getMatronVision(enemy);
+    const startAngle = vision.angle - vision.halfAngle;
+    const endAngle = vision.angle + vision.halfAngle;
+    ctx.fillStyle = canSeePlayer(enemy) ? "rgba(255, 52, 52, 0.48)" : "rgba(255, 222, 89, 0.24)";
+    ctx.beginPath();
+    ctx.moveTo(vision.origin.x, vision.origin.y);
+    ctx.arc(vision.origin.x, vision.origin.y, vision.range, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 239, 137, 0.75)";
+    ctx.setLineDash([10, 8]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  const color = doormanState.awake ? "#ef4444" : doormanState.warning ? "#f59e0b" : "#64748b";
+  drawActorRect(enemy, color, "门卫");
+
+  const feet = getFeetPoint(enemy);
+  ctx.fillStyle = doormanState.awake ? "#ffe8e8" : "#f8fafc";
+  ctx.font = "14px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(doormanState.awake ? "醒了!" : doormanState.warning ? "快醒了" : "Zzz", feet.x, enemy.y - 4);
+}
+
 function drawGuard(enemy) {
   const color = enemy.hitFlash > 0 ? "#ffffff" : "#f97316";
   const sprite = getSpriteRectFromFeet(enemy, enemy.w, enemy.h);
+  if (enemy.attackFlash > 0 && enemy.attackBox) {
+    ctx.fillStyle = "rgba(248, 113, 113, 0.32)";
+    ctx.fillRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
+    ctx.strokeStyle = "rgba(254, 202, 202, 0.85)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
+  }
   drawRect({ ...enemy, ...sprite }, color, "保安");
 
   ctx.fillStyle = "#1f2937";
@@ -159,17 +246,6 @@ function drawAttackEffect() {
   ctx.strokeRect(state.attackEffect.x, state.attackEffect.y, state.attackEffect.w, state.attackEffect.h);
 }
 
-function drawPlaceholderGate() {
-  if (!levels[state.levelIndex].placeholder) return;
-  ctx.fillStyle = "rgba(0, 0, 0, 0.36)";
-  ctx.fillRect(290, 72, 380, 76);
-  ctx.fillStyle = "#fff8dc";
-  ctx.font = "26px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("第三关待开发", WORLD.width / 2, 110);
-}
-
 export function render() {
   const level = levels[state.levelIndex];
   ctx.save();
@@ -177,15 +253,15 @@ export function render() {
   drawBackground(level);
   drawWalkAreaDebug(level);
   drawExit();
-  for (const obstacle of state.obstacles) drawRect(obstacle, obstacle.color, obstacle.label);
   for (const enemy of state.enemies) {
     if (!enemy.alive) continue;
     if (enemy.type === "matron") drawMatron(enemy);
     if (enemy.type === "guard") drawGuard(enemy);
+    if (enemy.type === "doorman") drawDoorman(enemy);
   }
   drawAttackEffect();
   drawPlayer();
-  drawPlaceholderGate();
+  for (const obstacle of state.obstacles) drawRect(obstacle, obstacle.color, obstacle.label);
   ctx.restore();
 
   if (state.damageFlash > 0) {

@@ -4,7 +4,8 @@ export const touchDirs = new Set();
 export const state = {
   lastTime: 0,
   levelIndex: 0,
-  gameState: "playing",
+  gameState: "start",
+  playerHp: 120,
   player: null,
   enemies: [],
   obstacles: [],

@@ -1,5 +1,5 @@
 import { playCaughtSound, playFootstepSound } from "./audio.js";
-import { debug, failureResults, WORLD } from "./config.js";
+import { balance, debug, failureResults, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import {
   centerOf,
@@ -14,6 +14,7 @@ import {
 } from "./math.js";
 import { keys, state, touchDirs } from "./state.js";
 import { elements, hideOverlay, showOverlay, updateHud } from "./ui.js";
+import { canFootBoxUseMask } from "./walkMask.js";
 
 export function updateCamera() {
   const world = getLevelWorld();
@@ -24,6 +25,7 @@ export function updateCamera() {
 export function initLevel(index) {
   clearFailureRestartTimer();
   const level = levels[index];
+  if (index === 0) state.playerHp = balance.playerMaxHp;
   state.levelIndex = index;
   state.gameState = "playing";
   state.obstacles = level.obstacles.map(cloneRect);
@@ -36,6 +38,7 @@ export function initLevel(index) {
     homeX: enemy.x,
     homeY: enemy.y,
     patrolDir: enemy.dir || 1,
+    sleepTimer: enemy.sleepOffset || 0,
     mode: "patrol",
   }));
   state.player = {
@@ -43,9 +46,10 @@ export function initLevel(index) {
     y: level.spawn.y,
     w: 30,
     h: 38,
-    speed: 86,
-    hp: 100,
+    speed: balance.playerSpeed,
+    hp: state.playerHp,
     facing: "right",
+    facingX: "right",
     attackCooldown: 0,
     invincible: 0,
   };
@@ -57,12 +61,10 @@ export function initLevel(index) {
   hideOverlay();
   updateHud();
 
-  if (level.placeholder) {
-    showOverlay("抵达学校大门", "第三关暂时待开发。你已经完成当前框架中的逃离目标。", true);
-  }
 }
 
 export function restartGame() {
+  state.playerHp = balance.playerMaxHp;
   initLevel(0);
 }
 
@@ -84,8 +86,13 @@ function getInputVector() {
     const length = Math.hypot(x, y);
     x /= length;
     y /= length;
-    if (Math.abs(x) > Math.abs(y)) state.player.facing = x > 0 ? "right" : "left";
-    else state.player.facing = y > 0 ? "down" : "up";
+    if (Math.abs(x) > Math.abs(y)) {
+      state.player.facing = x > 0 ? "right" : "left";
+      state.player.facingX = state.player.facing;
+    } else {
+      state.player.facing = y > 0 ? "down" : "up";
+      if (x !== 0) state.player.facingX = x > 0 ? "right" : "left";
+    }
   }
 
   return { x, y };
@@ -95,13 +102,22 @@ function canOccupy(rect, ignoreEnemy = null) {
   const level = levels[state.levelIndex];
   const world = getLevelWorld();
   const footBox = getFootBox(rect);
-  if (footBox.x < 12 || footBox.y < 52 || footBox.x + footBox.w > world.width - 12 || footBox.y + footBox.h > world.height - 12) {
+  const sideMargin = level.walkMask ? 0 : 12;
+  const topMargin = level.walkMask ? 0 : 52;
+  const bottomMargin = level.walkMask ? 0 : 12;
+  if (
+    footBox.x < sideMargin
+    || footBox.y < topMargin
+    || footBox.x + footBox.w > world.width - sideMargin
+    || footBox.y + footBox.h > world.height - bottomMargin
+  ) {
     return false;
   }
 
   if (level.walkArea && !rectInside(footBox, level.walkArea)) return false;
+  if (!canFootBoxUseMask(footBox, level)) return false;
 
-  if (state.obstacles.some((obstacle) => rectsOverlap(footBox, obstacle))) return false;
+  if (state.obstacles.some((obstacle) => !obstacle.hidden && rectsOverlap(footBox, obstacle))) return false;
 
   return !state.enemies.some((enemy) => enemy !== ignoreEnemy && enemy.alive && rectsOverlap(footBox, getFootBox(enemy)));
 }
@@ -162,6 +178,22 @@ export function getMatronVision(enemy) {
     angle: enemy.dir >= 0 ? 0 : Math.PI,
     range: enemy.visionW,
     halfAngle,
+  };
+}
+
+export function getDoormanState(enemy) {
+  const sleepDuration = enemy.sleepDuration || 3.2;
+  const awakeDuration = enemy.awakeDuration || 2.4;
+  const cycle = sleepDuration + awakeDuration;
+  const time = (enemy.sleepTimer || 0) % cycle;
+  const sleeping = time < sleepDuration;
+  const warning = sleeping && sleepDuration - time <= (enemy.wakeWarning || 0.7);
+
+  return {
+    sleeping,
+    warning,
+    awake: !sleeping,
+    time,
   };
 }
 
@@ -261,6 +293,7 @@ function updateGuards(dt) {
 
     guard.cooldown = Math.max(0, guard.cooldown - dt);
     guard.hitFlash = Math.max(0, guard.hitFlash - dt);
+    guard.attackFlash = Math.max(0, (guard.attackFlash || 0) - dt);
 
     const guardCenter = centerOf(guard);
     const dx = playerCenter.x - guardCenter.x;
@@ -288,10 +321,13 @@ function updateGuards(dt) {
       patrolGuard(guard, dt);
     }
 
-    if (!debug.invincible && rectsOverlap(state.player, guard) && guard.cooldown <= 0 && state.player.invincible <= 0) {
-      state.player.hp -= 15;
+    const attackBox = getGuardAttackBox(guard);
+    guard.attackBox = attackBox;
+    if (!debug.invincible && rectsOverlap(getFootBox(state.player), attackBox) && guard.cooldown <= 0 && state.player.invincible <= 0) {
+      damagePlayer(balance.guardAttackDamage);
       state.player.invincible = 0.65;
-      guard.cooldown = 0.9;
+      guard.cooldown = balance.guardAttackCooldown;
+      guard.attackFlash = 0.24;
       state.damageFlash = 0.22;
       if (state.player.hp <= 0) {
         failLevel("被保安抓住了");
@@ -305,16 +341,39 @@ function updateEnemies(dt) {
     if (!enemy.alive) continue;
     if (enemy.type === "matron") {
       updateMatron(enemy, dt);
-      if (canSeePlayer(enemy)) failLevel("被宿舍阿姨发现了");
+      if (canSeePlayer(enemy) && state.player.invincible <= 0) {
+        damagePlayer(balance.level1SeenDamage);
+        state.player.invincible = balance.level1SeenInvincible;
+        state.damageFlash = 0.18;
+        if (state.player.hp <= 0) failLevel("被宿舍阿姨发现了");
+      }
+    }
+    if (enemy.type === "doorman") {
+      enemy.sleepTimer += dt;
+      const doormanState = getDoormanState(enemy);
+      if (doormanState.awake && canSeePlayer(enemy)) failLevel("被门卫发现了");
     }
   }
 
   if (state.levelIndex === 1) updateGuards(dt);
 }
 
+function getGuardAttackBox(guard) {
+  const footBox = getFootBox(guard);
+  const range = balance.guardAttackRange;
+  const height = balance.guardAttackHeight;
+  const facingRight = guard.dir >= 0;
+  return {
+    x: facingRight ? footBox.x + footBox.w - 2 : footBox.x - range + 2,
+    y: footBox.y + footBox.h / 2 - height / 2,
+    w: range,
+    h: height,
+  };
+}
+
 function getAttackRect() {
-  const range = 58;
-  const size = 44;
+  const range = balance.playerAttackRange;
+  const size = balance.playerAttackSize;
   const center = centerOf(state.player);
 
   if (state.player.facing === "left") return { x: state.player.x - range, y: center.y - size / 2, w: range, h: size };
@@ -327,12 +386,12 @@ export function attack() {
   if (state.gameState !== "playing" || state.levelIndex !== 1 || state.player.attackCooldown > 0) return;
 
   const hitBox = getAttackRect();
-  state.player.attackCooldown = 0.38;
+  state.player.attackCooldown = balance.playerAttackCooldown;
   state.attackEffect = { ...hitBox, time: 0.14 };
 
   for (const guard of state.enemies) {
     if (!guard.alive || !rectsOverlap(hitBox, guard)) continue;
-    guard.hp -= 1;
+    guard.hp -= balance.playerAttackDamage;
     guard.hitFlash = 0.18;
     if (guard.hp <= 0) guard.alive = false;
   }
@@ -340,6 +399,12 @@ export function attack() {
   if (state.enemies.every((enemy) => !enemy.alive)) {
     elements.statusText.textContent = "保安全部被击败，冲向出口";
   }
+}
+
+function damagePlayer(amount) {
+  if (debug.invincible) return;
+  state.player.hp = Math.max(0, state.player.hp - amount);
+  state.playerHp = state.player.hp;
 }
 
 function failLevel(reason) {
@@ -351,6 +416,7 @@ function failLevel(reason) {
   showOverlay("逃离失败", `${reason}。处罚结果：${result}。2 秒后自动回到本关开始。`, false, false);
   state.failureRestartTimer = setTimeout(() => {
     state.failureRestartTimer = null;
+    state.playerHp = balance.playerMaxHp;
     initLevel(failedLevelIndex);
   }, 2000);
 }
@@ -365,7 +431,10 @@ function checkExit() {
 
   if (state.levelIndex < levels.length - 1) {
     initLevel(state.levelIndex + 1);
+    return;
   }
+
+  showOverlay("成功逃离学校", "趁门卫打瞌睡，你顺利溜出了学校。", false, true);
 }
 
 export function update(dt) {

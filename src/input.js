@@ -1,14 +1,19 @@
 import { toggleSound, unlockAudio } from "./audio.js";
+import { balance } from "./config.js";
 import { keys, state, touchDirs } from "./state.js";
 import { attack, initLevel, restartGame } from "./systems.js";
 import {
   elements,
+  hideStartScreen,
+  setupLevelSelect,
   toggleInvincible,
   updateInvincibleToggle,
   updateSoundToggle,
 } from "./ui.js";
 
 export function bindInput() {
+  setupLevelSelect();
+
   window.addEventListener("keydown", (event) => {
     unlockAudio();
     const key = event.key.toLowerCase();
@@ -69,6 +74,21 @@ export function bindInput() {
   elements.invincibleToggleBtn.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     toggleInvincible();
+  });
+
+  elements.startGameBtn.addEventListener("pointerdown", (event) => {
+    unlockAudio();
+    event.preventDefault();
+    state.playerHp = balance.playerMaxHp;
+    initLevel(0);
+    hideStartScreen();
+  });
+
+  elements.levelSelect.addEventListener("change", () => {
+    const index = Number(elements.levelSelect.value);
+    if (!Number.isInteger(index)) return;
+    state.playerHp = balance.playerMaxHp;
+    initLevel(index);
   });
 
   elements.restartLevelBtn.addEventListener("click", () => initLevel(state.levelIndex));

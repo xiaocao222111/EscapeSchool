@@ -30,12 +30,61 @@ button {
   -webkit-touch-callout: none;
 }
 
+.start-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-content: center;
+  gap: clamp(24px, 5vw, 42px);
+  text-align: center;
+  background:
+    linear-gradient(rgba(5, 8, 12, 0.28), rgba(5, 8, 12, 0.62)),
+    url("assets/dorm2-bg.png") center / cover no-repeat;
+}
+
+.start-screen.hidden {
+  display: none;
+}
+
+.start-screen h1 {
+  margin: 0;
+  color: #fff8dc;
+  font-size: clamp(42px, 9vw, 92px);
+  font-weight: 900;
+  text-shadow: 0 5px 18px rgba(0, 0, 0, 0.78);
+}
+
+.start-btn {
+  justify-self: center;
+  min-width: clamp(140px, 24vw, 220px);
+  padding: clamp(12px, 2.2vw, 18px) clamp(22px, 4vw, 34px);
+  border-radius: 8px;
+  background: #eeb549;
+  color: #24170a;
+  font-size: clamp(18px, 3.2vw, 28px);
+  font-weight: 900;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.start-btn:active {
+  transform: translateY(1px);
+  background: #ffd36a;
+}
+
+.game-stage.is-start-screen .hud,
+.game-stage.is-start-screen .controls,
+.game-stage.is-start-screen .sound-toggle,
+.game-stage.is-start-screen .debug-toggle,
+.game-stage.is-start-screen .level-select-wrap {
+  display: none;
+}
+
 .game-shell {
   display: grid;
   width: 100vw;
   height: 100vh;
   place-items: center;
-  padding: 10px;
 }
 
 .game-stage {
@@ -92,7 +141,8 @@ canvas {
 }
 
 .sound-toggle,
-.debug-toggle {
+.debug-toggle,
+.level-select-wrap {
   position: absolute;
   top: 42px;
   right: 10px;
@@ -111,6 +161,23 @@ canvas {
 
 .debug-toggle {
   top: 78px;
+}
+
+.level-select-wrap {
+  top: 114px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.level-select-wrap select {
+  max-width: 92px;
+  border: 0;
+  background: rgba(255, 248, 220, 0.95);
+  color: #1f2933;
+  font: inherit;
+  font-weight: 800;
+  outline: 0;
 }
 
 .sound-toggle.is-muted {
@@ -191,6 +258,10 @@ canvas {
   border-radius: 50%;
   pointer-events: auto;
   font-weight: 800;
+}
+
+.attack-btn.is-hidden {
+  display: none;
 }
 
 .overlay {
