@@ -34,42 +34,57 @@ button {
   position: absolute;
   inset: 0;
   z-index: 8;
-  display: grid;
-  place-content: center;
-  gap: clamp(24px, 5vw, 42px);
-  text-align: center;
-  background:
-    linear-gradient(rgba(5, 8, 12, 0.28), rgba(5, 8, 12, 0.62)),
-    url("assets/dorm2-bg.png") center / cover no-repeat;
+  background: url("assets/start-bg.png") center / cover no-repeat;
 }
 
 .start-screen.hidden {
   display: none;
 }
 
-.start-screen h1 {
-  margin: 0;
-  color: #fff8dc;
-  font-size: clamp(42px, 9vw, 92px);
-  font-weight: 900;
-  text-shadow: 0 5px 18px rgba(0, 0, 0, 0.78);
+.start-title-img {
+  position: absolute;
+  top: 19.5%;
+  left: 50%;
+  width: min(49%, 818px);
+  height: auto;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .start-btn {
-  justify-self: center;
-  min-width: clamp(140px, 24vw, 220px);
-  padding: clamp(12px, 2.2vw, 18px) clamp(22px, 4vw, 34px);
-  border-radius: 8px;
-  background: #eeb549;
-  color: #24170a;
-  font-size: clamp(18px, 3.2vw, 28px);
-  font-weight: 900;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  position: absolute;
+  top: 63%;
+  left: 50%;
+  width: min(34.5%, 574px);
+  padding: 0;
+  background: transparent;
+  transform: translateX(-50%);
 }
 
 .start-btn:active {
-  transform: translateY(1px);
-  background: #ffd36a;
+  transform: translateX(-50%) translateY(1px) scale(0.99);
+}
+
+.start-btn img,
+.start-sound-btn img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+
+.start-sound-btn {
+  position: absolute;
+  top: 5.1%;
+  right: 4%;
+  width: min(11.2%, 187px);
+  min-width: 104px;
+  padding: 0;
+  background: transparent;
+}
+
+.start-sound-btn:active {
+  transform: translateY(1px) scale(0.99);
 }
 
 .game-stage.is-start-screen .hud,
@@ -93,7 +108,6 @@ button {
   aspect-ratio: 16 / 9;
   max-height: 100vh;
   overflow: hidden;
-  border: 2px solid #f2d16b;
   background: #222;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
 }

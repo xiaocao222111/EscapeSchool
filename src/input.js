@@ -71,6 +71,12 @@ export function bindInput() {
     updateSoundToggle();
   });
 
+  elements.startSoundBtn.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    toggleSound();
+    updateSoundToggle();
+  });
+
   elements.invincibleToggleBtn.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     toggleInvincible();

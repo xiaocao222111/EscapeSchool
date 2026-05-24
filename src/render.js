@@ -116,12 +116,10 @@ function drawExit() {
 function drawPlayer() {
   const player = state.player;
   const flashing = player.invincible > 0 && Math.floor(player.invincible * 16) % 2 === 0;
-  let labelY = player.y - 4;
   let spriteRect = getSpriteRectFromFeet(player, player.w, player.h);
   if (images.player.complete && images.player.naturalWidth > 0 && !flashing) {
-    const spriteScale = 0.8;
-    const spriteW = images.player.naturalWidth * spriteScale;
-    const spriteH = images.player.naturalHeight * spriteScale;
+    const spriteW = images.player.naturalWidth;
+    const spriteH = images.player.naturalHeight;
     const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
     if (player.facingX === "left") {
       ctx.save();
@@ -133,7 +131,6 @@ function drawPlayer() {
       ctx.drawImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h);
     }
     spriteRect = sprite;
-    labelY = sprite.y - 4;
   } else {
     const sprite = getSpriteRectFromFeet(player, player.w, player.h);
     ctx.fillStyle = flashing ? "#ffffff" : "#4cc9f0";
@@ -141,15 +138,9 @@ function drawPlayer() {
     ctx.fillStyle = "#083344";
     ctx.fillRect(sprite.x + 7, sprite.y + 8, sprite.w - 14, 7);
     spriteRect = sprite;
-    labelY = sprite.y - 4;
   }
 
   drawPlayerHpBar(spriteRect);
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "13px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  ctx.fillText("玩家", getFeetPoint(player).x, labelY - 9);
 }
 
 function drawPlayerHpBar(sprite) {

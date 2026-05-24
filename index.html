@@ -12,8 +12,13 @@
         <canvas id="gameCanvas" width="960" height="540"></canvas>
 
         <div class="start-screen" id="startScreen">
-          <h1>逃离校园</h1>
-          <button class="start-btn" id="startGameBtn" type="button">开始游戏</button>
+          <img class="start-title-img" src="assets/start-title.png" alt="逃离学校" draggable="false" />
+          <button class="start-btn" id="startGameBtn" type="button" aria-label="开始游戏">
+            <img src="assets/start-button.png" alt="开始游戏" draggable="false" />
+          </button>
+          <button class="start-sound-btn" id="startSoundBtn" type="button" aria-label="关闭声音">
+            <img id="startSoundImg" src="assets/sound-on.png" alt="声音：开" draggable="false" />
+          </button>
         </div>
 
         <div class="hud">

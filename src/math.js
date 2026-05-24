@@ -64,9 +64,8 @@ export function getSightPoint(entity) {
 
 export function getPlayerSightPoint() {
   const player = state.player;
-  const spriteScale = images.player.complete && images.player.naturalWidth > 0 ? 0.8 : 1;
-  const spriteW = images.player.complete && images.player.naturalWidth > 0 ? images.player.naturalWidth * spriteScale : player.w;
-  const spriteH = images.player.complete && images.player.naturalHeight > 0 ? images.player.naturalHeight * spriteScale : player.h;
+  const spriteW = images.player.complete && images.player.naturalWidth > 0 ? images.player.naturalWidth : player.w;
+  const spriteH = images.player.complete && images.player.naturalHeight > 0 ? images.player.naturalHeight : player.h;
   const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
   return {
     x: sprite.x + sprite.w / 2,

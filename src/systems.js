@@ -341,11 +341,13 @@ function updateEnemies(dt) {
     if (!enemy.alive) continue;
     if (enemy.type === "matron") {
       updateMatron(enemy, dt);
-      if (canSeePlayer(enemy) && state.player.invincible <= 0) {
+      const touchedMatron = rectsOverlap(state.player, enemy) || rectsOverlap(getFootBox(state.player), getFootBox(enemy));
+      const caughtByMatron = canSeePlayer(enemy) || touchedMatron;
+      if (caughtByMatron && state.player.invincible <= 0) {
         damagePlayer(balance.level1SeenDamage);
         state.player.invincible = balance.level1SeenInvincible;
         state.damageFlash = 0.18;
-        if (state.player.hp <= 0) failLevel("被宿舍阿姨发现了");
+        if (state.player.hp <= 0) failLevel(touchedMatron ? "被宿舍阿姨抓住了" : "被宿舍阿姨发现了");
       }
     }
     if (enemy.type === "doorman") {
