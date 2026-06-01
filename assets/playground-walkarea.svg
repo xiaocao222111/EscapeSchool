@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="_图层_1" data-name="图层_1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1280 720">
   <defs>
     <style>
       .cls-1 {
@@ -7,5 +7,10 @@
       }
     </style>
   </defs>
-  <polyline class="cls-1" points="0 719.5 1280 719.5 1280 480.2 791.76 476.56 780.73 463.64 456.16 459.76 469.86 437.14 272.02 425.66 253.43 439.67 61.04 428.4 -.21 496.76"/>
+  <!-- Generator: Adobe Illustrator 28.6.0, SVG Export Plug-In . SVG Version: 1.2.0 Build 709)  -->
+  <g>
+    <g id="_图层_1">
+      <polyline class="cls-1" points="0 719.5 1280 719.5 1280 498.2 791.8 494.6 780.7 481.6 456.2 477.8 469.9 455.1 272 443.7 253.4 457.7 61 446.4 -.2 514.8"/>
+    </g>
+  </g>
 </svg>

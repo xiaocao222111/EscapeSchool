@@ -2,7 +2,7 @@ import { balance, debug, images, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import { getFeetPoint, getLevelWorld, getSpriteRectFromFeet } from "./math.js";
 import { state } from "./state.js";
-import { drawSpineActor } from "./spineRenderer.js";
+import { drawPlayerSprite } from "./spriteAnimator.js";
 import { canSeePlayer, getDoormanState, getMatronVision } from "./systems.js";
 import { ctx } from "./ui.js";
 import { drawWalkMaskDebug } from "./walkMask.js";
@@ -118,42 +118,50 @@ function drawPlayer() {
   const player = state.player;
   const hurt = player.invincible > 0;
   let spriteRect = getSpriteRectFromFeet(player, player.w, player.h);
-  const animation = state.attackEffect ? "attack" : player.invincible > 0 ? "hurt" : player.isMoving ? "walk" : "idle";
-  const drewSpine = drawSpineActor(ctx, "player", player, animation, { facing: player.facingX });
+  const spriteAction = state.playerAction === "attack" && state.playerActionTimer > 0 ? "attack" : player.isMoving ? "walk" : "idle";
+  const spriteElapsed = spriteAction === "attack" ? state.playerActionElapsed : state.animationTime;
+  const drewSprite = drawPlayerSprite(ctx, player, spriteAction, {
+    elapsed: spriteElapsed,
+    facing: player.facingX,
+    hurt,
+    loop: spriteAction !== "attack",
+  });
 
-  if (drewSpine) {
-    if (images.player.complete && images.player.naturalWidth > 0) {
-      spriteRect = getSpriteRectFromFeet(player, images.player.naturalWidth, images.player.naturalHeight);
-    }
-  } else if (images.player.complete && images.player.naturalWidth > 0) {
-    const spriteW = images.player.naturalWidth;
-    const spriteH = images.player.naturalHeight;
-    const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
-    if (player.facingX === "left") {
-      ctx.save();
-      ctx.translate(sprite.x + sprite.w, sprite.y);
-      ctx.scale(-1, 1);
-      ctx.drawImage(images.player, 0, 0, sprite.w, sprite.h);
-      ctx.restore();
-    } else {
-      ctx.drawImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h);
-    }
-    spriteRect = sprite;
+  if (drewSprite) {
+    spriteRect = drewSprite;
   } else {
-    const sprite = getSpriteRectFromFeet(player, player.w, player.h);
-    ctx.fillStyle = "#4cc9f0";
-    ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
-    ctx.fillStyle = "#083344";
-    ctx.fillRect(sprite.x + 7, sprite.y + 8, sprite.w - 14, 7);
-    spriteRect = sprite;
-  }
-
-  if (hurt) {
-    ctx.save();
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.fillStyle = "rgba(255, 72, 72, 0.42)";
-    ctx.fillRect(spriteRect.x, spriteRect.y, spriteRect.w, spriteRect.h);
-    ctx.restore();
+    if (images.player.complete && images.player.naturalWidth > 0) {
+      const spriteW = images.player.naturalWidth;
+      const spriteH = images.player.naturalHeight;
+      const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
+      ctx.save();
+      if (player.facingX === "left") {
+        ctx.translate(sprite.x + sprite.w, sprite.y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(images.player, 0, 0, sprite.w, sprite.h);
+        if (hurt) {
+          ctx.globalCompositeOperation = "source-atop";
+          ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+          ctx.fillRect(0, 0, sprite.w, sprite.h);
+        }
+      } else {
+        ctx.drawImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h);
+        if (hurt) {
+          ctx.globalCompositeOperation = "source-atop";
+          ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
+          ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
+        }
+      }
+      ctx.restore();
+      spriteRect = sprite;
+    } else {
+      const sprite = getSpriteRectFromFeet(player, player.w, player.h);
+      ctx.fillStyle = "#4cc9f0";
+      ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
+      ctx.fillStyle = "#083344";
+      ctx.fillRect(sprite.x + 7, sprite.y + 8, sprite.w - 14, 7);
+      spriteRect = sprite;
+    }
   }
 
   drawPlayerHpBar(spriteRect);
@@ -163,7 +171,7 @@ function drawPlayerHpBar(sprite) {
   const barW = 42;
   const barH = 5;
   const x = sprite.x + sprite.w / 2 - barW / 2;
-  const y = sprite.y - 9;
+  const y = sprite.y + 3;
   const ratio = Math.max(0, Math.min(1, state.player.hp / balance.playerMaxHp));
   ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
   ctx.fillRect(x - 1, y - 1, barW + 2, barH + 2);
@@ -194,9 +202,7 @@ function drawMatron(enemy) {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  if (!drawSpineActor(ctx, "matron", enemy, seesPlayer ? "alert" : "walk")) {
-    drawActorRect(enemy, "#d94679", "宿管");
-  }
+  drawActorRect(enemy, "#d94679", "宿管");
 }
 
 function drawDoorman(enemy) {
@@ -219,9 +225,7 @@ function drawDoorman(enemy) {
   }
 
   const color = doormanState.awake ? "#ef4444" : doormanState.warning ? "#f59e0b" : "#64748b";
-  if (!drawSpineActor(ctx, "doorman", enemy, doormanState.awake ? "alert" : "sleep")) {
-    drawActorRect(enemy, color, "门卫");
-  }
+  drawActorRect(enemy, color, "门卫");
 
   const feet = getFeetPoint(enemy);
   ctx.fillStyle = doormanState.awake ? "#ffe8e8" : "#f8fafc";
@@ -241,10 +245,7 @@ function drawGuard(enemy) {
     ctx.lineWidth = 2;
     ctx.strokeRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
   }
-  const animation = enemy.attackFlash > 0 ? "attack" : enemy.hitFlash > 0 ? "hurt" : "walk";
-  if (!drawSpineActor(ctx, "guard", enemy, animation)) {
-    drawRect({ ...enemy, ...sprite }, color, "保安");
-  }
+  drawRect({ ...enemy, ...sprite }, color, "保安");
 
   ctx.fillStyle = "#1f2937";
   ctx.fillRect(sprite.x, sprite.y - 9, sprite.w, 5);

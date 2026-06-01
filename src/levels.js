@@ -54,7 +54,7 @@ export const levels = [
     backgroundImage: images.playground,
     world: { width: 960, height: 540 },
     walkMask: images.playgroundWalkMask,
-    walkMaskOffsetY: 18,
+    walkMaskOffsetY: 0,
     spawn: { x: 78, y: 440 },
     exit: { x: 914, y: 360, w: 46, h: 180, label: "校门方向" },
     obstacles: [],

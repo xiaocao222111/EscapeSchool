@@ -14,6 +14,7 @@ import {
   rectsOverlap,
 } from "./math.js";
 import { keys, state, touchDirs } from "./state.js";
+import { getPlayerActionDuration } from "./spriteAnimator.js";
 import { elements, hideOverlay, showOverlay, updateHud } from "./ui.js";
 import { canFootBoxUseMask } from "./walkMask.js";
 
@@ -56,6 +57,9 @@ export function initLevel(index) {
   };
   state.camera = { x: 0, y: 0 };
   state.footstepTimer = 0;
+  state.playerAction = null;
+  state.playerActionTimer = 0;
+  state.playerActionElapsed = 0;
   updateCamera();
   state.attackEffect = null;
   state.damageFlash = 0;
@@ -397,6 +401,9 @@ export function attack() {
 
   const hitBox = getAttackRect();
   state.player.attackCooldown = balance.playerAttackCooldown;
+  state.playerAction = "attack";
+  state.playerActionTimer = getPlayerActionDuration("attack");
+  state.playerActionElapsed = 0;
   state.attackEffect = { ...hitBox, time: 0.14 };
 
   for (const guard of state.enemies) {
@@ -452,6 +459,15 @@ export function update(dt) {
 
   state.player.attackCooldown = Math.max(0, state.player.attackCooldown - dt);
   state.player.invincible = Math.max(0, state.player.invincible - dt);
+  state.animationTime += dt;
+  if (state.playerActionTimer > 0) {
+    state.playerActionTimer = Math.max(0, state.playerActionTimer - dt);
+    state.playerActionElapsed += dt;
+    if (state.playerActionTimer <= 0) {
+      state.playerAction = null;
+      state.playerActionElapsed = 0;
+    }
+  }
   if (state.attackEffect) {
     state.attackEffect.time -= dt;
     if (state.attackEffect.time <= 0) state.attackEffect = null;

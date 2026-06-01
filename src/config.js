@@ -8,14 +8,24 @@ export const images = {
   playground: new Image(),
   playgroundWalkMask: new Image(),
   player: new Image(),
+  playerAtlas: new Image(),
 };
 
 images.dorm.src = "assets/dorm1-bg.png?v=20260523b";
-images.dormWalkMask.src = "assets/dorm-bgwalkarea.svg?v=20260524";
+images.dormWalkMask.src = "assets/dorm-bgwalkarea.svg?v=20260601";
 images.obstacle1.src = "assets/obstacle1.png";
 images.playground.src = "assets/dorm2-bg.png";
-images.playgroundWalkMask.src = "assets/playground-walkarea.svg?v=20260524";
+images.playgroundWalkMask.src = "assets/playground-walkarea.svg?v=20260601";
 images.player.src = "assets/player.png";
+images.playerAtlas.src = "assets/lv.png";
+
+export const playerSpriteAtlas = {
+  json: "assets/lv.json",
+  image: images.playerAtlas,
+  frameDuration: 6 / 60,
+  defaultSize: { w: 100, h: 100 },
+  naturalFacing: "left",
+};
 
 export const audioFiles = {
   bgm: "assets/audio/bgm.wav",
@@ -41,62 +51,6 @@ export const balance = {
   guardAttackCooldown: 1.2,
   guardAttackRange: 48,
   guardAttackHeight: 28,
-};
-
-export const spineRuntimeUrl = "https://cdn.jsdelivr.net/npm/@esotericsoftware/spine-canvas@4.2.90/dist/iife/spine-canvas.js";
-
-export const spineCharacters = {
-  player: {
-    basePath: "assets/spine/player/",
-    json: "player.json",
-    atlas: "player.atlas",
-    scale: 1,
-    naturalFacing: "right",
-    animations: {
-      idle: "idle",
-      walk: "walk",
-      attack: "attack",
-      hurt: "hurt",
-    },
-  },
-  matron: {
-    basePath: "assets/spine/matron/",
-    json: "matron.json",
-    atlas: "matron.atlas",
-    scale: 1,
-    naturalFacing: "right",
-    animations: {
-      idle: "idle",
-      walk: "walk",
-      alert: "alert",
-    },
-  },
-  guard: {
-    basePath: "assets/spine/guard/",
-    json: "guard.json",
-    atlas: "guard.atlas",
-    scale: 1,
-    naturalFacing: "right",
-    animations: {
-      idle: "idle",
-      walk: "walk",
-      attack: "attack",
-      hurt: "hurt",
-      dead: "dead",
-    },
-  },
-  doorman: {
-    basePath: "assets/spine/doorman/",
-    json: "doorman.json",
-    atlas: "doorman.atlas",
-    scale: 1,
-    naturalFacing: "right",
-    animations: {
-      idle: "idle",
-      alert: "alert",
-      sleep: "sleep",
-    },
-  },
 };
 
 export const failureResults = ["全校通报批评", "叫家长", "写检讨"];

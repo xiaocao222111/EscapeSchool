@@ -1,4 +1,4 @@
-import { images, WORLD } from "./config.js";
+import { playerSpriteAtlas, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import { state } from "./state.js";
 
@@ -43,8 +43,8 @@ export function getActorBlockBox(entity, visualSource = entity) {
   let spriteH = entity.h;
 
   if (visualSource === state.player) {
-    spriteW = images.player.complete && images.player.naturalWidth > 0 ? images.player.naturalWidth : entity.w;
-    spriteH = images.player.complete && images.player.naturalHeight > 0 ? images.player.naturalHeight : entity.h;
+    spriteW = playerSpriteAtlas.defaultSize.w;
+    spriteH = playerSpriteAtlas.defaultSize.h;
   }
 
   const w = Math.max(entity.w * 0.9, Math.min(spriteW * 0.58, 52));
@@ -84,8 +84,8 @@ export function getSightPoint(entity) {
 
 export function getPlayerSightPoint() {
   const player = state.player;
-  const spriteW = images.player.complete && images.player.naturalWidth > 0 ? images.player.naturalWidth : player.w;
-  const spriteH = images.player.complete && images.player.naturalHeight > 0 ? images.player.naturalHeight : player.h;
+  const spriteW = playerSpriteAtlas.defaultSize.w;
+  const spriteH = playerSpriteAtlas.defaultSize.h;
   const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
   return {
     x: sprite.x + sprite.w / 2,
