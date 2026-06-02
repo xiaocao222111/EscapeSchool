@@ -12,12 +12,12 @@
         <canvas id="gameCanvas" width="960" height="540"></canvas>
 
         <div class="start-screen" id="startScreen">
-          <img class="start-title-img" src="assets/start-title.png" alt="逃离学校" draggable="false" />
+          <div class="start-title-img" role="img" aria-label="逃离学校"></div>
           <button class="start-btn" id="startGameBtn" type="button" aria-label="开始游戏">
-            <img src="assets/start-button.png" alt="开始游戏" draggable="false" />
+            <span aria-hidden="true"></span>
           </button>
           <button class="start-sound-btn" id="startSoundBtn" type="button" aria-label="关闭声音">
-            <img id="startSoundImg" src="assets/sound-on.png" alt="声音：开" draggable="false" />
+            <span id="startSoundImg" aria-hidden="true"></span>
           </button>
         </div>
 
@@ -58,6 +58,6 @@
       <div class="rotate-tip">请将手机横屏游玩</div>
     </main>
 
-    <script type="module" src="src/main.js?v=20260601-atlas"></script>
+    <script type="module" src="src/main.js?v=20260602-player-hurt-tint"></script>
   </body>
 </html>

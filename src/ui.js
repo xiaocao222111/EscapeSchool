@@ -74,8 +74,7 @@ export function updateSoundToggle() {
   elements.soundToggleBtn.setAttribute("aria-label", audioState.muted ? "打开声音" : "关闭声音");
   elements.soundToggleBtn.classList.toggle("is-muted", audioState.muted);
   elements.startSoundBtn.setAttribute("aria-label", audioState.muted ? "打开声音" : "关闭声音");
-  elements.startSoundImg.src = audioState.muted ? "assets/sound-off.png" : "assets/sound-on.png";
-  elements.startSoundImg.alt = audioState.muted ? "声音：关" : "声音：开";
+  elements.startSoundBtn.classList.toggle("is-muted", audioState.muted);
 }
 
 export function updateInvincibleToggle() {

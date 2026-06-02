@@ -134,25 +134,15 @@ function drawPlayer() {
       const spriteW = images.player.naturalWidth;
       const spriteH = images.player.naturalHeight;
       const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
-      ctx.save();
-      if (player.facingX === "left") {
-        ctx.translate(sprite.x + sprite.w, sprite.y);
-        ctx.scale(-1, 1);
-        ctx.drawImage(images.player, 0, 0, sprite.w, sprite.h);
-        if (hurt) {
-          ctx.globalCompositeOperation = "source-atop";
-          ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
-          ctx.fillRect(0, 0, sprite.w, sprite.h);
+        ctx.save();
+        if (player.facingX === "left") {
+          ctx.translate(sprite.x + sprite.w, sprite.y);
+          ctx.scale(-1, 1);
+          drawTintableImage(images.player, 0, 0, sprite.w, sprite.h, hurt);
+        } else {
+          drawTintableImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h, hurt);
         }
-      } else {
-        ctx.drawImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h);
-        if (hurt) {
-          ctx.globalCompositeOperation = "source-atop";
-          ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
-          ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
-        }
-      }
-      ctx.restore();
+        ctx.restore();
       spriteRect = sprite;
     } else {
       const sprite = getSpriteRectFromFeet(player, player.w, player.h);
@@ -165,6 +155,26 @@ function drawPlayer() {
   }
 
   drawPlayerHpBar(spriteRect);
+}
+
+const playerTintCanvas = document.createElement("canvas");
+const playerTintCtx = playerTintCanvas.getContext("2d");
+
+function drawTintableImage(image, x, y, w, h, hurt) {
+  if (!hurt) {
+    ctx.drawImage(image, x, y, w, h);
+    return;
+  }
+
+  playerTintCanvas.width = w;
+  playerTintCanvas.height = h;
+  playerTintCtx.clearRect(0, 0, w, h);
+  playerTintCtx.drawImage(image, 0, 0, w, h);
+  playerTintCtx.globalCompositeOperation = "source-atop";
+  playerTintCtx.fillStyle = "rgba(255, 0, 0, 0.3)";
+  playerTintCtx.fillRect(0, 0, w, h);
+  playerTintCtx.globalCompositeOperation = "source-over";
+  ctx.drawImage(playerTintCanvas, x, y);
 }
 
 function drawPlayerHpBar(sprite) {

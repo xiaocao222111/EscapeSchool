@@ -299,6 +299,7 @@ function moveGuardToward(guard, target, dt) {
 
 function updateGuards(dt) {
   const playerCenter = centerOf(state.player);
+  const playerIsAttacking = isPlayerAttacking();
 
   for (const guard of state.enemies) {
     if (!guard.alive) continue;
@@ -335,7 +336,7 @@ function updateGuards(dt) {
 
     const attackBox = getGuardAttackBox(guard);
     guard.attackBox = attackBox;
-    if (!debug.invincible && rectsOverlap(getFootBox(state.player), attackBox) && guard.cooldown <= 0 && state.player.invincible <= 0) {
+    if (!playerIsAttacking && !debug.invincible && rectsOverlap(getFootBox(state.player), attackBox) && guard.cooldown <= 0 && state.player.invincible <= 0) {
       damagePlayer(balance.guardAttackDamage);
       state.player.invincible = 0.65;
       guard.cooldown = balance.guardAttackCooldown;
@@ -346,6 +347,10 @@ function updateGuards(dt) {
       }
     }
   }
+}
+
+function isPlayerAttacking() {
+  return state.levelIndex === 1 && state.playerAction === "attack" && state.playerActionTimer > 0;
 }
 
 function updateEnemies(dt) {

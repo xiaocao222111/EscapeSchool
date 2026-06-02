@@ -11,18 +11,18 @@ export const levels = [
     walkMaskColor: [65, 50, 214],
     walkMaskOffsetY: 0,
     spawn: { x: 89, y: 326 },
-    exit: { x: 920, y: 326, w: 23, h: 54, label: "出口" },
+    exit: { x: 915, y: 390, w: 45, h: 62, label: "出口" },
     obstacles: [
-      { x: 245, y: 291, w: 30, h: 59, hidden: true, label: "躲避区1" },
-      { x: 426, y: 291, w: 30, h: 59, hidden: true, label: "躲避区2" },
-      { x: 606, y: 289, w: 30, h: 59, hidden: true, label: "躲避区3" },
-      { x: 786, y: 289, w: 30, h: 59, hidden: true, label: "躲避区4" },
+      { x: 219.75, y: 265.5, w: 40.58, h: 89.03, hidden: true, label: "躲避区1" },
+      { x: 399.75, y: 270, w: 35.25, h: 80.03, hidden: true, label: "躲避区2" },
+      { x: 580.5, y: 270, w: 40.8, h: 81.45, hidden: true, label: "躲避区3" },
+      { x: 747.75, y: 270, w: 38.18, h: 81.45, hidden: true, label: "躲避区4" },
     ],
     enemies: [
       {
         type: "matron",
         x: 462,
-        y: 334,
+        y: 362,
         w: 34,
         h: 42,
         speed: 38,
@@ -35,7 +35,7 @@ export const levels = [
       {
         type: "matron",
         x: 832,
-        y: 334,
+        y: 362,
         w: 34,
         h: 42,
         speed: 40,

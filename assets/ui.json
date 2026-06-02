@@ -1,0 +1,52 @@
+{"frames": [
+
+{
+	"filename": "sound-off.png",
+	"frame": {"x":0,"y":0,"w":198,"h":61},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":198,"h":61},
+	"sourceSize": {"w":198,"h":61}
+},
+{
+	"filename": "sound-on.png",
+	"frame": {"x":198,"y":0,"w":206,"h":74},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":206,"h":74},
+	"sourceSize": {"w":206,"h":74}
+},
+{
+	"filename": "start-bg.png",
+	"frame": {"x":0,"y":200,"w":1672,"h":941},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":1672,"h":941},
+	"sourceSize": {"w":1672,"h":941}
+},
+{
+	"filename": "start-button.png",
+	"frame": {"x":404,"y":0,"w":396,"h":88},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":396,"h":88},
+	"sourceSize": {"w":396,"h":88}
+},
+{
+	"filename": "start-title.png",
+	"frame": {"x":800,"y":0,"w":743,"h":200},
+	"rotated": false,
+	"trimmed": false,
+	"spriteSourceSize": {"x":0,"y":0,"w":743,"h":200},
+	"sourceSize": {"w":743,"h":200}
+}],
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.0",
+	"image": "ui.png",
+	"format": "RGBA8888",
+	"size": {"w":1672,"h":1141},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:7bfbc4540491e6429cd43f8a5cf3d68e:43d96967d4cfd0e16d1211653db6dcdd:5b04aa198265472a3c5f56958d78e97b$"
+}
+}

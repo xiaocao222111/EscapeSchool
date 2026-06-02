@@ -34,7 +34,10 @@ button {
   position: absolute;
   inset: 0;
   z-index: 8;
-  background: url("assets/start-bg.png") center / cover no-repeat;
+  background-image: url("assets/ui.png");
+  background-size: 100% auto;
+  background-position: left bottom;
+  background-repeat: no-repeat;
 }
 
 .start-screen.hidden {
@@ -43,19 +46,23 @@ button {
 
 .start-title-img {
   position: absolute;
-  top: 19.5%;
+  top: 23.4%;
   left: 50%;
-  width: min(49%, 818px);
-  height: auto;
+  width: 44.44%;
+  aspect-ratio: 743 / 200;
+  background-image: url("assets/ui.png");
+  background-size: 225.03% auto;
+  background-position: 86.11% 0;
+  background-repeat: no-repeat;
   transform: translateX(-50%);
   pointer-events: none;
 }
 
 .start-btn {
   position: absolute;
-  top: 63%;
+  top: 69.7%;
   left: 50%;
-  width: min(34.5%, 574px);
+  width: 23.68%;
   padding: 0;
   background: transparent;
   transform: translateX(-50%);
@@ -65,26 +72,49 @@ button {
   transform: translateX(-50%) translateY(1px) scale(0.99);
 }
 
-.start-btn img,
-.start-sound-btn img {
+.start-btn span,
+.start-sound-btn span {
   display: block;
   width: 100%;
-  height: auto;
+  background-image: url("assets/ui.png");
+  background-repeat: no-repeat;
   pointer-events: none;
+}
+
+.start-btn span {
+  aspect-ratio: 396 / 88;
+  background-size: 422.22% auto;
+  background-position: 31.66% 0;
 }
 
 .start-sound-btn {
   position: absolute;
-  top: 5.1%;
-  right: 4%;
-  width: min(11.2%, 187px);
-  min-width: 104px;
+  top: 5.3%;
+  right: 2.5%;
+  width: 12.32%;
+  min-width: 96px;
   padding: 0;
   background: transparent;
 }
 
 .start-sound-btn:active {
   transform: translateY(1px) scale(0.99);
+}
+
+.start-sound-btn span {
+  aspect-ratio: 206 / 74;
+  background-size: 811.65% auto;
+  background-position: 13.51% 0;
+}
+
+.start-sound-btn.is-muted {
+  width: 11.84%;
+}
+
+.start-sound-btn.is-muted span {
+  aspect-ratio: 198 / 61;
+  background-size: 844.44% auto;
+  background-position: 0 0;
 }
 
 .game-stage.is-start-screen .hud,

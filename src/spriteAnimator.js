@@ -6,6 +6,9 @@ const atlasCache = {
   actions: {},
 };
 
+const tintCanvas = document.createElement("canvas");
+const tintCtx = tintCanvas.getContext("2d");
+
 function loadAtlas() {
   if (atlasCache.status !== "idle") return;
   atlasCache.status = "loading";
@@ -80,21 +83,28 @@ export function drawPlayerSprite(ctx, player, action, options = {}) {
   if (shouldFlip) {
     ctx.translate(sprite.x + sprite.w, sprite.y);
     ctx.scale(-1, 1);
-    ctx.drawImage(image, source.x, source.y, source.w, source.h, 0, 0, sprite.w, sprite.h);
-    if (options.hurt) {
-      ctx.globalCompositeOperation = "source-atop";
-      ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
-      ctx.fillRect(0, 0, sprite.w, sprite.h);
-    }
+    drawFrame(ctx, image, source, 0, 0, sprite.w, sprite.h, options.hurt);
   } else {
-    ctx.drawImage(image, source.x, source.y, source.w, source.h, sprite.x, sprite.y, sprite.w, sprite.h);
-    if (options.hurt) {
-      ctx.globalCompositeOperation = "source-atop";
-      ctx.fillStyle = "rgba(255, 0, 0, 0.3)";
-      ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
-    }
+    drawFrame(ctx, image, source, sprite.x, sprite.y, sprite.w, sprite.h, options.hurt);
   }
   ctx.restore();
 
   return sprite;
+}
+
+function drawFrame(ctx, image, source, x, y, w, h, hurt) {
+  if (!hurt) {
+    ctx.drawImage(image, source.x, source.y, source.w, source.h, x, y, w, h);
+    return;
+  }
+
+  tintCanvas.width = w;
+  tintCanvas.height = h;
+  tintCtx.clearRect(0, 0, w, h);
+  tintCtx.drawImage(image, source.x, source.y, source.w, source.h, 0, 0, w, h);
+  tintCtx.globalCompositeOperation = "source-atop";
+  tintCtx.fillStyle = "rgba(255, 0, 0, 0.3)";
+  tintCtx.fillRect(0, 0, w, h);
+  tintCtx.globalCompositeOperation = "source-over";
+  ctx.drawImage(tintCanvas, x, y);
 }
