@@ -2,8 +2,8 @@ import { balance, debug, images, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import { getFeetPoint, getLevelWorld, getSpriteRectFromFeet } from "./math.js";
 import { state } from "./state.js";
-import { drawPlayerSprite } from "./spriteAnimator.js";
-import { canSeePlayer, getDoormanState, getMatronVision } from "./systems.js";
+import { drawCharacterSprite, getCharacterActionDuration, getCharacterSpriteSize } from "./spriteAnimator.js";
+import { canSeePlayer, getDoormanState, getMatronVision, isPlayerHiding } from "./systems.js";
 import { ctx } from "./ui.js";
 import { drawWalkMaskDebug } from "./walkMask.js";
 
@@ -116,72 +116,34 @@ function drawExit() {
 
 function drawPlayer() {
   const player = state.player;
-  const hurt = player.invincible > 0;
-  let spriteRect = getSpriteRectFromFeet(player, player.w, player.h);
-  const spriteAction = state.playerAction === "attack" && state.playerActionTimer > 0 ? "attack" : player.isMoving ? "walk" : "idle";
-  const spriteElapsed = spriteAction === "attack" ? state.playerActionElapsed : state.animationTime;
-  const drewSprite = drawPlayerSprite(ctx, player, spriteAction, {
-    elapsed: spriteElapsed,
+  const hiding = isPlayerHiding();
+  const attacking = state.playerAction === "attack" && state.playerActionTimer > 0;
+  const action = hiding ? "hiddle" : attacking ? "attack" : player.invincible > 0 ? "hit" : player.isMoving ? "walk" : "idle";
+  const elapsed = attacking ? state.playerActionElapsed : state.animationTime;
+  const size = getCharacterSpriteSize("player");
+  let spriteRect = getSpriteRectFromFeet(player, size.w, size.h);
+  const drewSprite = drawCharacterSprite(ctx, "player", player, action, {
+    elapsed,
     facing: player.facingX,
-    hurt,
-    loop: spriteAction !== "attack",
+    hurt: action === "hit",
+    loop: action === "idle" || action === "walk",
   });
 
   if (drewSprite) {
     spriteRect = drewSprite;
   } else {
-    if (images.player.complete && images.player.naturalWidth > 0) {
-      const spriteW = images.player.naturalWidth;
-      const spriteH = images.player.naturalHeight;
-      const sprite = getSpriteRectFromFeet(player, spriteW, spriteH);
-        ctx.save();
-        if (player.facingX === "left") {
-          ctx.translate(sprite.x + sprite.w, sprite.y);
-          ctx.scale(-1, 1);
-          drawTintableImage(images.player, 0, 0, sprite.w, sprite.h, hurt);
-        } else {
-          drawTintableImage(images.player, sprite.x, sprite.y, sprite.w, sprite.h, hurt);
-        }
-        ctx.restore();
-      spriteRect = sprite;
-    } else {
-      const sprite = getSpriteRectFromFeet(player, player.w, player.h);
-      ctx.fillStyle = "#4cc9f0";
-      ctx.fillRect(sprite.x, sprite.y, sprite.w, sprite.h);
-      ctx.fillStyle = "#083344";
-      ctx.fillRect(sprite.x + 7, sprite.y + 8, sprite.w - 14, 7);
-      spriteRect = sprite;
-    }
+    ctx.fillStyle = "#4cc9f0";
+    ctx.fillRect(spriteRect.x, spriteRect.y, spriteRect.w, spriteRect.h);
   }
 
   drawPlayerHpBar(spriteRect);
-}
-
-const playerTintCanvas = document.createElement("canvas");
-const playerTintCtx = playerTintCanvas.getContext("2d");
-
-function drawTintableImage(image, x, y, w, h, hurt) {
-  if (!hurt) {
-    ctx.drawImage(image, x, y, w, h);
-    return;
-  }
-
-  playerTintCanvas.width = w;
-  playerTintCanvas.height = h;
-  playerTintCtx.clearRect(0, 0, w, h);
-  playerTintCtx.drawImage(image, 0, 0, w, h);
-  playerTintCtx.globalCompositeOperation = "source-atop";
-  playerTintCtx.fillStyle = "rgba(255, 0, 0, 0.3)";
-  playerTintCtx.fillRect(0, 0, w, h);
-  playerTintCtx.globalCompositeOperation = "source-over";
-  ctx.drawImage(playerTintCanvas, x, y);
 }
 
 function drawPlayerHpBar(sprite) {
   const barW = 42;
   const barH = 5;
   const x = sprite.x + sprite.w / 2 - barW / 2;
-  const y = sprite.y + 3;
+  const y = sprite.y - 7;
   const ratio = Math.max(0, Math.min(1, state.player.hp / balance.playerMaxHp));
   ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
   ctx.fillRect(x - 1, y - 1, barW + 2, barH + 2);
@@ -212,7 +174,9 @@ function drawMatron(enemy) {
   ctx.stroke();
   ctx.setLineDash([]);
 
-  drawActorRect(enemy, "#d94679", "宿管");
+  if (!drawCharacterSprite(ctx, "matron", enemy, "walk", { elapsed: state.animationTime + enemy.animationOffset, loop: true })) {
+    drawActorRect(enemy, "#d94679", "宿管");
+  }
 }
 
 function drawDoorman(enemy) {
@@ -247,7 +211,8 @@ function drawDoorman(enemy) {
 
 function drawGuard(enemy) {
   const color = enemy.hitFlash > 0 ? "#ffffff" : "#f97316";
-  const sprite = getSpriteRectFromFeet(enemy, enemy.w, enemy.h);
+  const guardSize = getCharacterSpriteSize("guard");
+  let sprite = getSpriteRectFromFeet(enemy, guardSize.w, guardSize.h);
   if (enemy.attackFlash > 0 && enemy.attackBox) {
     ctx.fillStyle = "rgba(248, 113, 113, 0.32)";
     ctx.fillRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
@@ -255,12 +220,27 @@ function drawGuard(enemy) {
     ctx.lineWidth = 2;
     ctx.strokeRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
   }
-  drawRect({ ...enemy, ...sprite }, color, "保安");
+  const action = enemy.hitFlash > 0 ? "hit" : enemy.attackFlash > 0 ? "attack" : "walk";
+  const elapsed = action === "hit"
+    ? getCharacterActionDuration("guard", "hit") - enemy.hitFlash
+    : action === "attack" ? 0.24 - enemy.attackFlash : state.animationTime + enemy.animationOffset;
+  const drewSprite = drawCharacterSprite(ctx, "guard", enemy, action, {
+    elapsed,
+    hurt: action === "hit",
+    loop: action === "walk",
+  });
+  if (drewSprite) {
+    sprite = drewSprite;
+  } else {
+    drawRect({ ...enemy, ...sprite }, color, "保安");
+  }
 
+  const guardBarW = Math.min(56, sprite.w * 0.48);
+  const guardBarX = sprite.x + sprite.w / 2 - guardBarW / 2;
   ctx.fillStyle = "#1f2937";
-  ctx.fillRect(sprite.x, sprite.y - 9, sprite.w, 5);
+  ctx.fillRect(guardBarX, sprite.y - 9, guardBarW, 5);
   ctx.fillStyle = "#22c55e";
-  ctx.fillRect(sprite.x, sprite.y - 9, sprite.w * Math.max(0, enemy.hp) / enemy.maxHp, 5);
+  ctx.fillRect(guardBarX, sprite.y - 9, guardBarW * Math.max(0, enemy.hp) / enemy.maxHp, 5);
 }
 
 function drawAttackEffect() {
@@ -295,9 +275,4 @@ export function render() {
   for (const actor of actors) drawActor(actor);
   for (const obstacle of state.obstacles) drawRect(obstacle, obstacle.color, obstacle.label);
   ctx.restore();
-
-  if (state.damageFlash > 0) {
-    ctx.fillStyle = `rgba(255, 0, 0, ${state.damageFlash * 1.5})`;
-    ctx.fillRect(0, 0, WORLD.width, WORLD.height);
-  }
 }

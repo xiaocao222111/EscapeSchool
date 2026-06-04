@@ -14,7 +14,7 @@ import {
   rectsOverlap,
 } from "./math.js";
 import { keys, state, touchDirs } from "./state.js";
-import { getPlayerActionDuration } from "./spriteAnimator.js";
+import { getCharacterActionDuration } from "./spriteAnimator.js";
 import { elements, hideOverlay, showOverlay, updateHud } from "./ui.js";
 import { canFootBoxUseMask } from "./walkMask.js";
 
@@ -37,6 +37,7 @@ export function initLevel(index) {
     maxHp: enemy.hp || 1,
     alive: true,
     hitFlash: 0,
+    animationOffset: Math.random() * 10,
     homeX: enemy.x,
     homeY: enemy.y,
     patrolDir: enemy.dir || 1,
@@ -62,7 +63,6 @@ export function initLevel(index) {
   state.playerActionElapsed = 0;
   updateCamera();
   state.attackEffect = null;
-  state.damageFlash = 0;
   hideOverlay();
   updateHud();
 
@@ -157,7 +157,20 @@ function moveEntity(entity, dx, dy, ignoreEnemy = null) {
 }
 
 function movePlayer(dt) {
-  const input = getInputVector();
+  let input = getInputVector();
+  if (state.player.invincible > 0) {
+    input = { x: 0, y: 0 };
+  }
+  const hidingObstacle = getPlayerHidingObstacle();
+  if (hidingObstacle && (input.x !== 0 || input.y !== 0)) {
+    const playerFoot = centerOf(getFootBox(state.player));
+    const obstacleCenter = centerOf(hidingObstacle);
+    const awayX = playerFoot.x - obstacleCenter.x;
+    const awayY = playerFoot.y - obstacleCenter.y;
+    if (input.x * awayX + input.y * awayY <= 0) {
+      input = { x: 0, y: 0 };
+    }
+  }
   const movement = moveEntity(state.player, input.x * state.player.speed * dt, input.y * state.player.speed * dt);
   const isMoving = movement.movedX || movement.movedY;
   state.player.isMoving = isMoving;
@@ -191,6 +204,25 @@ export function getMatronVision(enemy) {
     range: enemy.visionW,
     halfAngle,
   };
+}
+
+export function isPlayerHiding() {
+  return Boolean(getPlayerHidingObstacle());
+}
+
+function getPlayerHidingObstacle() {
+  if (state.levelIndex !== 0 || !state.player) return null;
+  const footBox = getFootBox(state.player);
+  return state.obstacles.find((obstacle) => {
+    if (!obstacle.hidden) return false;
+    const proximity = {
+      x: obstacle.x - 12,
+      y: obstacle.y - 12,
+      w: obstacle.w + 24,
+      h: obstacle.h + 24,
+    };
+    return rectsOverlap(footBox, proximity);
+  });
 }
 
 export function getDoormanState(enemy) {
@@ -341,7 +373,6 @@ function updateGuards(dt) {
       state.player.invincible = 0.65;
       guard.cooldown = balance.guardAttackCooldown;
       guard.attackFlash = 0.24;
-      state.damageFlash = 0.22;
       if (state.player.hp <= 0) {
         failLevel("被保安抓住了");
       }
@@ -363,7 +394,6 @@ function updateEnemies(dt) {
       if (caughtByMatron && state.player.invincible <= 0) {
         damagePlayer(balance.level1SeenDamage);
         state.player.invincible = balance.level1SeenInvincible;
-        state.damageFlash = 0.18;
         if (state.player.hp <= 0) failLevel(touchedMatron ? "被宿舍阿姨抓住了" : "被宿舍阿姨发现了");
       }
     }
@@ -407,14 +437,14 @@ export function attack() {
   const hitBox = getAttackRect();
   state.player.attackCooldown = balance.playerAttackCooldown;
   state.playerAction = "attack";
-  state.playerActionTimer = getPlayerActionDuration("attack");
+  state.playerActionTimer = getCharacterActionDuration("player", "attack");
   state.playerActionElapsed = 0;
   state.attackEffect = { ...hitBox, time: 0.14 };
 
   for (const guard of state.enemies) {
     if (!guard.alive || !rectsOverlap(hitBox, guard)) continue;
     guard.hp -= balance.playerAttackDamage;
-    guard.hitFlash = 0.18;
+    guard.hitFlash = getCharacterActionDuration("guard", "hit");
     if (guard.hp <= 0) guard.alive = false;
   }
 
@@ -477,8 +507,6 @@ export function update(dt) {
     state.attackEffect.time -= dt;
     if (state.attackEffect.time <= 0) state.attackEffect = null;
   }
-  state.damageFlash = Math.max(0, state.damageFlash - dt);
-
   movePlayer(dt);
   updateEnemies(dt);
   checkExit();

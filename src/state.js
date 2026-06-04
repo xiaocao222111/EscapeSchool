@@ -15,7 +15,6 @@ export const state = {
   playerAction: null,
   playerActionTimer: 0,
   playerActionElapsed: 0,
-  damageFlash: 0,
   failureRestartTimer: null,
   camera: { x: 0, y: 0 },
   footstepTimer: 0,

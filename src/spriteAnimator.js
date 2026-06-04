@@ -1,29 +1,34 @@
-import { playerSpriteAtlas } from "./config.js";
+import { characterAtlases } from "./config.js";
 import { getSpriteRectFromFeet } from "./math.js";
 
-const atlasCache = {
-  status: "idle",
-  actions: {},
-};
-
+const atlasCaches = new Map();
 const tintCanvas = document.createElement("canvas");
 const tintCtx = tintCanvas.getContext("2d");
 
-function loadAtlas() {
-  if (atlasCache.status !== "idle") return;
-  atlasCache.status = "loading";
+function getCache(role) {
+  if (!atlasCaches.has(role)) {
+    atlasCaches.set(role, { status: "idle", actions: {} });
+  }
+  return atlasCaches.get(role);
+}
 
-  fetch(playerSpriteAtlas.json)
+function loadAtlas(role) {
+  const spec = characterAtlases[role];
+  const cache = getCache(role);
+  if (!spec || cache.status !== "idle") return;
+  cache.status = "loading";
+
+  fetch(spec.json)
     .then((response) => {
-      if (!response.ok) throw new Error(`Failed to load ${playerSpriteAtlas.json}`);
+      if (!response.ok) throw new Error(`Failed to load ${spec.json}`);
       return response.json();
     })
     .then((data) => {
-      atlasCache.actions = groupFrames(data.frames || []);
-      atlasCache.status = "ready";
+      cache.actions = groupFrames(data.frames || []);
+      cache.status = "ready";
     })
     .catch(() => {
-      atlasCache.status = "failed";
+      cache.status = "failed";
     });
 }
 
@@ -50,34 +55,43 @@ function frameNumber(filename) {
   return match ? Number(match[1]) : 0;
 }
 
-export function getPlayerSpriteSize() {
-  return playerSpriteAtlas.defaultSize;
+function getFrameDuration(role, action) {
+  const durations = characterAtlases[role]?.frameDurations;
+  return durations?.[action] || durations?.default || 2 / 60;
 }
 
-export function getPlayerActionDuration(action) {
-  loadAtlas();
-  const frames = atlasCache.actions[action];
-  const frameCount = frames?.length || (action === "attack" ? 9 : 1);
-  return frameCount * playerSpriteAtlas.frameDuration;
+export function getCharacterSpriteSize(role) {
+  return characterAtlases[role]?.defaultSize || { w: 34, h: 42 };
 }
 
-export function drawPlayerSprite(ctx, player, action, options = {}) {
-  loadAtlas();
-  const image = playerSpriteAtlas.image;
-  if (atlasCache.status !== "ready" || !image.complete || image.naturalWidth <= 0) return null;
+export function getCharacterActionDuration(role, action) {
+  loadAtlas(role);
+  const frames = getCache(role).actions[action];
+  const frameCount = frames?.length || characterAtlases[role]?.frameCounts?.[action] || 1;
+  return frameCount * getFrameDuration(role, action);
+}
 
-  const frames = atlasCache.actions[action] || atlasCache.actions.idle;
+export function drawCharacterSprite(ctx, role, entity, action, options = {}) {
+  const spec = characterAtlases[role];
+  if (!spec) return null;
+
+  loadAtlas(role);
+  const cache = getCache(role);
+  const image = spec.image;
+  if (cache.status !== "ready" || !image.complete || image.naturalWidth <= 0) return null;
+
+  const frames = cache.actions[action] || cache.actions.walk || cache.actions.idle;
   if (!frames?.length) return null;
 
   const elapsed = options.elapsed || 0;
-  const rawIndex = Math.floor(elapsed / playerSpriteAtlas.frameDuration);
+  const rawIndex = Math.floor(elapsed / getFrameDuration(role, action));
   const frameIndex = options.loop === false ? Math.min(rawIndex, frames.length - 1) : rawIndex % frames.length;
   const frame = frames[frameIndex];
   const source = frame.frame;
-  const sourceSize = frame.sourceSize || playerSpriteAtlas.defaultSize;
-  const sprite = getSpriteRectFromFeet(player, sourceSize.w, sourceSize.h);
-  const facing = options.facing || player.facingX || "right";
-  const shouldFlip = facing !== playerSpriteAtlas.naturalFacing;
+  const sourceSize = frame.sourceSize || spec.defaultSize;
+  const sprite = getSpriteRectFromFeet(entity, sourceSize.w, sourceSize.h);
+  const facing = options.facing || entity.facingX || (entity.dir >= 0 ? "right" : "left");
+  const shouldFlip = facing !== spec.naturalFacing;
 
   ctx.save();
   if (shouldFlip) {

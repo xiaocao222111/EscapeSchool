@@ -4,27 +4,46 @@ export const activeLevelCount = 2;
 export const images = {
   dorm: new Image(),
   dormWalkMask: new Image(),
-  obstacle1: new Image(),
   playground: new Image(),
   playgroundWalkMask: new Image(),
-  player: new Image(),
   playerAtlas: new Image(),
+  matronAtlas: new Image(),
+  guardAtlas: new Image(),
 };
 
 images.dorm.src = "assets/dorm1-bg.png?v=20260523b";
 images.dormWalkMask.src = "assets/dorm-bgwalkarea.svg?v=20260601";
-images.obstacle1.src = "assets/obstacle1.png";
 images.playground.src = "assets/dorm2-bg.png";
 images.playgroundWalkMask.src = "assets/playground-walkarea.svg?v=20260601";
-images.player.src = "assets/player.png";
 images.playerAtlas.src = "assets/lv.png";
+images.matronAtlas.src = "assets/hongdou.png";
+images.guardAtlas.src = "assets/dahongdou.png";
 
-export const playerSpriteAtlas = {
-  json: "assets/lv.json",
-  image: images.playerAtlas,
-  frameDuration: 6 / 60,
-  defaultSize: { w: 100, h: 100 },
-  naturalFacing: "left",
+export const characterAtlases = {
+  player: {
+    json: "assets/lv.json",
+    image: images.playerAtlas,
+    defaultSize: { w: 78, h: 74 },
+    naturalFacing: "left",
+    frameDurations: { default: 4 / 60, idle: 14 / 60 },
+    frameCounts: { attack: 4, hiddle: 1, hit: 1, idle: 3, walk: 9 },
+  },
+  matron: {
+    json: "assets/hongfou.json",
+    image: images.matronAtlas,
+    defaultSize: { w: 99, h: 130 },
+    naturalFacing: "right",
+    frameDurations: { default: 4 / 60 },
+    frameCounts: { walk: 14 },
+  },
+  guard: {
+    json: "assets/dahongdou.json",
+    image: images.guardAtlas,
+    defaultSize: { w: 130, h: 130 },
+    naturalFacing: "right",
+    frameDurations: { default: 4 / 60, hit: 14 / 60 },
+    frameCounts: { attack: 6, hit: 2, walk: 18 },
+  },
 };
 
 export const audioFiles = {
@@ -34,7 +53,7 @@ export const audioFiles = {
 };
 
 export const debug = {
-  showWalkArea: true,
+  showWalkArea: false,
   invincible: false,
 };
 
