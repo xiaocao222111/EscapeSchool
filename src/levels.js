@@ -65,31 +65,4 @@ export const levels = [
       { type: "guard", x: 565, y: 440, w: 34, h: 42, hp: 5, speed: 42, minX: 440, maxX: 760, dir: 1, detectRange: 205, cooldown: 0 },
     ],
   },
-  {
-    name: "学校大门",
-    objective: "趁门卫打瞌睡时溜出学校大门",
-    background: "#596069",
-    spawn: { x: 110, y: 270 },
-    exit: { x: 790, y: 186, w: 96, h: 168, label: "大门" },
-    obstacles: [
-      { x: 366, y: 154, w: 72, h: 232, color: "#45505c", label: "门柱" },
-      { x: 520, y: 154, w: 72, h: 232, color: "#45505c", label: "门柱" },
-      { x: 190, y: 332, w: 110, h: 66, color: "#6b7280", label: "保安亭" },
-    ],
-    enemies: [
-      {
-        type: "doorman",
-        x: 646,
-        y: 278,
-        w: 34,
-        h: 42,
-        dir: -1,
-        visionW: 175,
-        visionH: 128,
-        sleepDuration: 3.4,
-        awakeDuration: 2,
-        wakeWarning: 0.8,
-      },
-    ],
-  },
 ];

@@ -1,5 +1,4 @@
 export const WORLD = { width: 960, height: 540 };
-export const activeLevelCount = 2;
 
 export const images = {
   dorm: new Image(),

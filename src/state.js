@@ -10,7 +10,7 @@ export const state = {
   enemies: [],
   obstacles: [],
   exitZone: null,
-  attackEffect: null,
+  statusText: null,
   animationTime: 0,
   playerAction: null,
   playerActionTimer: 0,

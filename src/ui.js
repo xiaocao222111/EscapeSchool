@@ -1,5 +1,5 @@
 import { audioState } from "./audio.js";
-import { activeLevelCount, balance, debug } from "./config.js";
+import { balance, debug } from "./config.js";
 import { levels } from "./levels.js";
 import { state } from "./state.js";
 
@@ -55,8 +55,8 @@ export function showOverlay(title, text, keepPlaying = false, showActions = true
 export function updateHud() {
   const level = levels[state.levelIndex];
   elements.levelName.textContent = level.name;
-  elements.levelProgress.textContent = `${state.levelIndex + 1}/${activeLevelCount}`;
-  elements.statusText.textContent = level.objective;
+  elements.levelProgress.textContent = `${state.levelIndex + 1}/${levels.length}`;
+  elements.statusText.textContent = state.statusText || level.objective;
   elements.levelSelect.value = String(state.levelIndex);
   elements.attackBtn.classList.toggle("is-hidden", state.levelIndex !== 1);
   elements.attackBtn.style.display = state.levelIndex === 1 ? "" : "none";
@@ -90,7 +90,7 @@ export function toggleInvincible() {
 }
 
 export function setupLevelSelect() {
-  elements.levelSelect.replaceChildren(...levels.slice(0, activeLevelCount).map((level, index) => {
+  elements.levelSelect.replaceChildren(...levels.map((level, index) => {
     const option = document.createElement("option");
     option.value = String(index);
     option.textContent = `${index + 1}. ${level.name}`;

@@ -1,5 +1,5 @@
 import { playCaughtSound, playFootstepSound } from "./audio.js";
-import { activeLevelCount, balance, debug, failureResults, WORLD } from "./config.js";
+import { balance, debug, failureResults, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import {
   centerOf,
@@ -15,7 +15,7 @@ import {
 } from "./math.js";
 import { keys, state, touchDirs } from "./state.js";
 import { getCharacterActionDuration } from "./spriteAnimator.js";
-import { elements, hideOverlay, showOverlay, updateHud } from "./ui.js";
+import { hideOverlay, showOverlay, updateHud } from "./ui.js";
 import { canFootBoxUseMask } from "./walkMask.js";
 
 export function updateCamera() {
@@ -37,6 +37,7 @@ export function initLevel(index) {
     maxHp: enemy.hp || 1,
     alive: true,
     hitFlash: 0,
+    attackDamageDone: false,
     animationOffset: Math.random() * 10,
     homeX: enemy.x,
     homeY: enemy.y,
@@ -61,11 +62,10 @@ export function initLevel(index) {
   state.playerAction = null;
   state.playerActionTimer = 0;
   state.playerActionElapsed = 0;
+  state.statusText = null;
   updateCamera();
-  state.attackEffect = null;
   hideOverlay();
   updateHud();
-
 }
 
 export function restartGame() {
@@ -234,22 +234,6 @@ function getPlayerHidingObstacle() {
   });
 }
 
-export function getDoormanState(enemy) {
-  const sleepDuration = enemy.sleepDuration || 3.2;
-  const awakeDuration = enemy.awakeDuration || 2.4;
-  const cycle = sleepDuration + awakeDuration;
-  const time = (enemy.sleepTimer || 0) % cycle;
-  const sleeping = time < sleepDuration;
-  const warning = sleeping && sleepDuration - time <= (enemy.wakeWarning || 0.7);
-
-  return {
-    sleeping,
-    warning,
-    awake: !sleeping,
-    time,
-  };
-}
-
 function lineIntersectsRect(a, b, rect) {
   const pointInside = (point) => point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
   if (pointInside(a) || pointInside(b)) return true;
@@ -416,11 +400,6 @@ function updateEnemies(dt) {
         if (state.player.hp <= 0) failLevel(touchedMatron ? "被宿舍阿姨抓住了" : "被宿舍阿姨发现了");
       }
     }
-    if (enemy.type === "doorman") {
-      enemy.sleepTimer += dt;
-      const doormanState = getDoormanState(enemy);
-      if (doormanState.awake && canSeePlayer(enemy)) failLevel("被门卫发现了");
-    }
   }
 
   if (state.levelIndex === 1) updateGuards(dt);
@@ -465,7 +444,6 @@ export function attack() {
   state.playerAction = "attack";
   state.playerActionTimer = getCharacterActionDuration("player", "attack");
   state.playerActionElapsed = 0;
-  state.attackEffect = { ...hitBox, time: 0.14 };
 
   for (const guard of state.enemies) {
     if (!guard.alive || !rectsOverlap(hitBox, guard)) continue;
@@ -475,7 +453,7 @@ export function attack() {
   }
 
   if (state.enemies.every((enemy) => !enemy.alive)) {
-    elements.statusText.textContent = "保安全部被击败，冲向出口";
+    state.statusText = "保安全部被击败，冲向出口";
   }
 }
 
@@ -503,11 +481,11 @@ function checkExit() {
   if (!rectsOverlap(state.player, state.exitZone)) return;
 
   if (state.levelIndex === 1 && state.enemies.some((enemy) => enemy.alive)) {
-    elements.statusText.textContent = "先打败所有保安，出口才会开启";
+    state.statusText = "先打败所有保安，出口才会开启";
     return;
   }
 
-  if (state.levelIndex < activeLevelCount - 1) {
+  if (state.levelIndex < levels.length - 1) {
     initLevel(state.levelIndex + 1);
     return;
   }
@@ -528,10 +506,6 @@ export function update(dt) {
       state.playerAction = null;
       state.playerActionElapsed = 0;
     }
-  }
-  if (state.attackEffect) {
-    state.attackEffect.time -= dt;
-    if (state.attackEffect.time <= 0) state.attackEffect = null;
   }
   movePlayer(dt);
   updateEnemies(dt);

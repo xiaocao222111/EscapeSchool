@@ -1,9 +1,9 @@
-import { balance, debug, images, WORLD } from "./config.js";
+import { balance, debug, WORLD } from "./config.js";
 import { levels } from "./levels.js";
 import { getFeetPoint, getLevelWorld, getSpriteRectFromFeet } from "./math.js";
 import { state } from "./state.js";
 import { drawCharacterSprite, getCharacterActionDuration, getCharacterSpriteSize } from "./spriteAnimator.js";
-import { getDoormanState, isPlayerHiding } from "./systems.js";
+import { isPlayerHiding } from "./systems.js";
 import { ctx } from "./ui.js";
 import { drawWalkMaskDebug } from "./walkMask.js";
 
@@ -179,19 +179,6 @@ function drawMatron(enemy) {
   }
 }
 
-function drawDoorman(enemy) {
-  const doormanState = getDoormanState(enemy);
-  const color = doormanState.awake ? "#ef4444" : doormanState.warning ? "#f59e0b" : "#64748b";
-  drawActorRect(enemy, color, "门卫");
-
-  const feet = getFeetPoint(enemy);
-  ctx.fillStyle = doormanState.awake ? "#ffe8e8" : "#f8fafc";
-  ctx.font = "14px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  ctx.fillText(doormanState.awake ? "醒了!" : doormanState.warning ? "快醒了" : "Zzz", feet.x, enemy.y - 4);
-}
-
 function drawGuard(enemy) {
   const color = enemy.hitFlash > 0 ? "#ffffff" : "#f97316";
   const guardSize = getCharacterSpriteSize("guard");
@@ -219,9 +206,6 @@ function drawGuard(enemy) {
   ctx.fillRect(guardBarX, sprite.y - 9, guardBarW * Math.max(0, enemy.hp) / enemy.maxHp, 5);
 }
 
-function drawAttackEffect() {
-}
-
 function drawActor(actor) {
   if (actor === state.player) {
     drawActorShadow(actor, "player");
@@ -236,7 +220,6 @@ function drawActor(actor) {
     drawActorShadow(actor, "guard");
     drawGuard(actor);
   }
-  if (actor.type === "doorman") drawDoorman(actor);
 }
 
 export function render() {
@@ -246,7 +229,6 @@ export function render() {
   drawBackground(level);
   drawWalkAreaDebug(level);
   drawExit();
-  drawAttackEffect();
   const actors = [state.player, ...state.enemies.filter((enemy) => enemy.alive)]
     .sort((a, b) => getFeetPoint(a).y - getFeetPoint(b).y);
   for (const actor of actors) drawActor(actor);
