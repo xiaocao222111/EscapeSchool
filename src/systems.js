@@ -73,6 +73,16 @@ export function restartGame() {
   initLevel(0);
 }
 
+export function returnToStartScreen() {
+  clearFailureRestartTimer();
+  state.playerHp = balance.playerMaxHp;
+  initLevel(0);
+  state.gameState = "start";
+  elements.startScreen.classList.remove("hidden");
+  elements.gameStage.classList.add("is-start-screen");
+  hideOverlay();
+}
+
 function clearFailureRestartTimer() {
   if (!state.failureRestartTimer) return;
   clearTimeout(state.failureRestartTimer);
@@ -119,6 +129,7 @@ function canOccupy(rect, ignoreEnemy = null) {
     return false;
   }
 
+  if (level.minFootY && footBox.y + footBox.h < level.minFootY) return false;
   if (level.walkArea && !rectInside(footBox, level.walkArea)) return false;
   if (!canFootBoxUseMask(footBox, level)) return false;
 
@@ -213,15 +224,13 @@ export function isPlayerHiding() {
 function getPlayerHidingObstacle() {
   if (state.levelIndex !== 0 || !state.player) return null;
   const footBox = getFootBox(state.player);
+  const footCenter = centerOf(footBox);
   return state.obstacles.find((obstacle) => {
     if (!obstacle.hidden) return false;
-    const proximity = {
-      x: obstacle.x - 12,
-      y: obstacle.y - 12,
-      w: obstacle.w + 24,
-      h: obstacle.h + 24,
-    };
-    return rectsOverlap(footBox, proximity);
+    return footCenter.x >= obstacle.x
+      && footCenter.x <= obstacle.x + obstacle.w
+      && footCenter.y >= obstacle.y
+      && footCenter.y <= obstacle.y + obstacle.h;
   });
 }
 
@@ -368,14 +377,23 @@ function updateGuards(dt) {
 
     const attackBox = getGuardAttackBox(guard);
     guard.attackBox = attackBox;
-    if (!playerIsAttacking && !debug.invincible && rectsOverlap(getFootBox(state.player), attackBox) && guard.cooldown <= 0 && state.player.invincible <= 0) {
+    const playerInAttackBox = rectsOverlap(getFootBox(state.player), attackBox);
+    const guardIsAttacking = guard.attackFlash > 0;
+
+    if (!playerIsAttacking && guardIsAttacking && !guard.attackDamageDone && !debug.invincible && playerInAttackBox && state.player.invincible <= 0) {
+      facePlayerToward(guard);
       damagePlayer(balance.guardAttackDamage);
-      state.player.invincible = 0.65;
-      guard.cooldown = balance.guardAttackCooldown;
-      guard.attackFlash = 0.24;
+      state.player.invincible = 0.3;
+      guard.attackDamageDone = true;
       if (state.player.hp <= 0) {
         failLevel("被保安抓住了");
       }
+    }
+
+    if (!playerIsAttacking && !guardIsAttacking && playerInAttackBox && guard.cooldown <= 0 && state.player.invincible <= 0) {
+      guard.cooldown = balance.guardAttackCooldown;
+      guard.attackFlash = getCharacterActionDuration("guard", "attack");
+      guard.attackDamageDone = false;
     }
   }
 }
@@ -392,6 +410,7 @@ function updateEnemies(dt) {
       const touchedMatron = rectsOverlap(state.player, enemy) || rectsOverlap(getFootBox(state.player), getFootBox(enemy));
       const caughtByMatron = canSeePlayer(enemy) || touchedMatron;
       if (caughtByMatron && state.player.invincible <= 0) {
+        facePlayerToward(enemy);
         damagePlayer(balance.level1SeenDamage);
         state.player.invincible = balance.level1SeenInvincible;
         if (state.player.hp <= 0) failLevel(touchedMatron ? "被宿舍阿姨抓住了" : "被宿舍阿姨发现了");
@@ -405,6 +424,13 @@ function updateEnemies(dt) {
   }
 
   if (state.levelIndex === 1) updateGuards(dt);
+}
+
+function facePlayerToward(entity) {
+  const playerCenter = centerOf(state.player);
+  const entityCenter = centerOf(entity);
+  state.player.facing = entityCenter.x >= playerCenter.x ? "right" : "left";
+  state.player.facingX = state.player.facing;
 }
 
 function getGuardAttackBox(guard) {

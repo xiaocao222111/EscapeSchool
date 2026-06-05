@@ -1,7 +1,7 @@
 import { toggleSound, unlockAudio } from "./audio.js";
 import { balance } from "./config.js";
 import { keys, state, touchDirs } from "./state.js";
-import { attack, initLevel, restartGame } from "./systems.js";
+import { attack, initLevel, restartGame, returnToStartScreen } from "./systems.js";
 import {
   elements,
   hideStartScreen,
@@ -80,6 +80,11 @@ export function bindInput() {
   elements.invincibleToggleBtn.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     toggleInvincible();
+  });
+
+  elements.homeToggleBtn.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    returnToStartScreen();
   });
 
   elements.startGameBtn.addEventListener("pointerdown", (event) => {

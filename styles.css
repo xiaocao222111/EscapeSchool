@@ -69,7 +69,8 @@ button {
 }
 
 .start-btn:active {
-  transform: translateX(-50%) translateY(1px) scale(0.99);
+  filter: brightness(1.18);
+  transform: translateX(-50%) translateY(4px) scale(0.96);
 }
 
 .start-btn span,
@@ -92,6 +93,7 @@ button {
   top: 5.3%;
   right: 2.5%;
   width: 12.32%;
+  aspect-ratio: 206 / 74;
   min-width: 96px;
   padding: 0;
   background: transparent;
@@ -102,25 +104,26 @@ button {
 }
 
 .start-sound-btn span {
-  aspect-ratio: 206 / 74;
+  height: 100%;
   background-size: 811.65% auto;
   background-position: 13.51% 0;
 }
 
 .start-sound-btn.is-muted {
-  width: 11.84%;
+  width: 12.32%;
 }
 
 .start-sound-btn.is-muted span {
-  aspect-ratio: 198 / 61;
+  height: 100%;
   background-size: 844.44% auto;
-  background-position: 0 0;
+  background-position: 0 3px;
 }
 
 .game-stage.is-start-screen .hud,
 .game-stage.is-start-screen .controls,
 .game-stage.is-start-screen .sound-toggle,
 .game-stage.is-start-screen .debug-toggle,
+.game-stage.is-start-screen .home-toggle,
 .game-stage.is-start-screen .level-select-wrap {
   display: none;
 }
@@ -186,6 +189,7 @@ canvas {
 
 .sound-toggle,
 .debug-toggle,
+.home-toggle,
 .level-select-wrap {
   position: absolute;
   top: 42px;
@@ -207,8 +211,12 @@ canvas {
   top: 78px;
 }
 
-.level-select-wrap {
+.home-toggle {
   top: 114px;
+}
+
+.level-select-wrap {
+  top: 150px;
   display: flex;
   align-items: center;
   gap: 6px;

@@ -25,6 +25,7 @@ export const elements = {
   attackBtn: document.getElementById("attackBtn"),
   soundToggleBtn: document.getElementById("soundToggleBtn"),
   invincibleToggleBtn: document.getElementById("invincibleToggleBtn"),
+  homeToggleBtn: document.getElementById("homeToggleBtn"),
   levelSelect: document.getElementById("levelSelect"),
 };
 

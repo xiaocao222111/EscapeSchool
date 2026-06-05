@@ -10,8 +10,9 @@ export const levels = [
     walkMask: images.dormWalkMask,
     walkMaskColor: [65, 50, 214],
     walkMaskOffsetY: 0,
+    minFootY: 355,
     spawn: { x: 89, y: 326 },
-    exit: { x: 915, y: 390, w: 45, h: 62, label: "出口" },
+    exit: { x: 934, y: 336, w: 26, h: 82, label: "出口" },
     obstacles: [
       { x: 219.75, y: 265.5, w: 40.58, h: 89.03, hidden: true, label: "躲避区1" },
       { x: 399.75, y: 270, w: 35.25, h: 80.03, hidden: true, label: "躲避区2" },

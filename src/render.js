@@ -3,7 +3,7 @@ import { levels } from "./levels.js";
 import { getFeetPoint, getLevelWorld, getSpriteRectFromFeet } from "./math.js";
 import { state } from "./state.js";
 import { drawCharacterSprite, getCharacterActionDuration, getCharacterSpriteSize } from "./spriteAnimator.js";
-import { canSeePlayer, getDoormanState, getMatronVision, isPlayerHiding } from "./systems.js";
+import { getDoormanState, isPlayerHiding } from "./systems.js";
 import { ctx } from "./ui.js";
 import { drawWalkMaskDebug } from "./walkMask.js";
 
@@ -139,6 +139,21 @@ function drawPlayer() {
   drawPlayerHpBar(spriteRect);
 }
 
+function drawActorShadow(actor, role) {
+  const size = getCharacterSpriteSize(role);
+  const feet = getFeetPoint(actor);
+  ctx.save();
+  ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+  ctx.beginPath();
+  const offsetX = role === "player" ? -3 : 0;
+  const offsetY = role === "player" ? -5 : -8;
+  const radiusX = role === "player" ? size.w * 0.18 : size.w * 0.26;
+  const radiusY = role === "player" ? Math.max(4, size.h * 0.035) : Math.max(5, size.h * 0.045);
+  ctx.ellipse(feet.x + offsetX, feet.y + offsetY, radiusX, radiusY, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawPlayerHpBar(sprite) {
   const barW = 42;
   const barH = 5;
@@ -159,21 +174,6 @@ function drawActorRect(entity, color, label) {
 }
 
 function drawMatron(enemy) {
-  const vision = getMatronVision(enemy);
-  const seesPlayer = canSeePlayer(enemy);
-  const startAngle = vision.angle - vision.halfAngle;
-  const endAngle = vision.angle + vision.halfAngle;
-  ctx.fillStyle = seesPlayer ? "rgba(255, 52, 52, 0.48)" : "rgba(255, 222, 89, 0.25)";
-  ctx.beginPath();
-  ctx.moveTo(vision.origin.x, vision.origin.y);
-  ctx.arc(vision.origin.x, vision.origin.y, vision.range, startAngle, endAngle);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255, 239, 137, 0.75)";
-  ctx.setLineDash([10, 8]);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
   if (!drawCharacterSprite(ctx, "matron", enemy, "walk", { elapsed: state.animationTime + enemy.animationOffset, loop: true })) {
     drawActorRect(enemy, "#d94679", "宿管");
   }
@@ -181,23 +181,6 @@ function drawMatron(enemy) {
 
 function drawDoorman(enemy) {
   const doormanState = getDoormanState(enemy);
-
-  if (doormanState.awake) {
-    const vision = getMatronVision(enemy);
-    const startAngle = vision.angle - vision.halfAngle;
-    const endAngle = vision.angle + vision.halfAngle;
-    ctx.fillStyle = canSeePlayer(enemy) ? "rgba(255, 52, 52, 0.48)" : "rgba(255, 222, 89, 0.24)";
-    ctx.beginPath();
-    ctx.moveTo(vision.origin.x, vision.origin.y);
-    ctx.arc(vision.origin.x, vision.origin.y, vision.range, startAngle, endAngle);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255, 239, 137, 0.75)";
-    ctx.setLineDash([10, 8]);
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
   const color = doormanState.awake ? "#ef4444" : doormanState.warning ? "#f59e0b" : "#64748b";
   drawActorRect(enemy, color, "门卫");
 
@@ -213,13 +196,6 @@ function drawGuard(enemy) {
   const color = enemy.hitFlash > 0 ? "#ffffff" : "#f97316";
   const guardSize = getCharacterSpriteSize("guard");
   let sprite = getSpriteRectFromFeet(enemy, guardSize.w, guardSize.h);
-  if (enemy.attackFlash > 0 && enemy.attackBox) {
-    ctx.fillStyle = "rgba(248, 113, 113, 0.32)";
-    ctx.fillRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
-    ctx.strokeStyle = "rgba(254, 202, 202, 0.85)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(enemy.attackBox.x, enemy.attackBox.y, enemy.attackBox.w, enemy.attackBox.h);
-  }
   const action = enemy.hitFlash > 0 ? "hit" : enemy.attackFlash > 0 ? "attack" : "walk";
   const elapsed = action === "hit"
     ? getCharacterActionDuration("guard", "hit") - enemy.hitFlash
@@ -244,21 +220,22 @@ function drawGuard(enemy) {
 }
 
 function drawAttackEffect() {
-  if (!state.attackEffect) return;
-  ctx.fillStyle = "rgba(255, 236, 128, 0.5)";
-  ctx.fillRect(state.attackEffect.x, state.attackEffect.y, state.attackEffect.w, state.attackEffect.h);
-  ctx.strokeStyle = "#fff3a3";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(state.attackEffect.x, state.attackEffect.y, state.attackEffect.w, state.attackEffect.h);
 }
 
 function drawActor(actor) {
   if (actor === state.player) {
+    drawActorShadow(actor, "player");
     drawPlayer();
     return;
   }
-  if (actor.type === "matron") drawMatron(actor);
-  if (actor.type === "guard") drawGuard(actor);
+  if (actor.type === "matron") {
+    drawActorShadow(actor, "matron");
+    drawMatron(actor);
+  }
+  if (actor.type === "guard") {
+    drawActorShadow(actor, "guard");
+    drawGuard(actor);
+  }
   if (actor.type === "doorman") drawDoorman(actor);
 }
 

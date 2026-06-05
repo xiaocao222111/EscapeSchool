@@ -25,7 +25,7 @@ export const characterAtlases = {
     image: images.playerAtlas,
     defaultSize: { w: 78, h: 74 },
     naturalFacing: "left",
-    frameDurations: { default: 4 / 60, idle: 14 / 60 },
+    frameDurations: { default: 4 / 60, idle: 14 / 60, walk: 6 / 60 },
     frameCounts: { attack: 4, hiddle: 1, hit: 1, idle: 3, walk: 9 },
   },
   matron: {
