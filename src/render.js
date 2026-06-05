@@ -199,7 +199,7 @@ function drawGuard(enemy) {
   const action = enemy.hitFlash > 0 ? "hit" : enemy.attackFlash > 0 ? "attack" : "walk";
   const elapsed = action === "hit"
     ? getCharacterActionDuration("guard", "hit") - enemy.hitFlash
-    : action === "attack" ? 0.24 - enemy.attackFlash : state.animationTime + enemy.animationOffset;
+    : action === "attack" ? getCharacterActionDuration("guard", "attack") - enemy.attackFlash : state.animationTime + enemy.animationOffset;
   const drewSprite = drawCharacterSprite(ctx, "guard", enemy, action, {
     elapsed,
     hurt: action === "hit",
