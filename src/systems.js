@@ -1,5 +1,5 @@
-import { playCaughtSound, playFootstepSound } from "./audio.js";
-import { balance, debug, failureResults, WORLD } from "./config.js";
+import { playAttackSound, playCaughtSound, playNpcFootstepSound, playPlayerFootstepSound } from "./audio.js?v=20260607-audio-buffer-1";
+import { balance, debug, failureResults } from "./config.js";
 import { levels } from "./levels.js";
 import {
   centerOf,
@@ -13,15 +13,15 @@ import {
   rectInside,
   rectsOverlap,
 } from "./math.js";
-import { keys, state, touchDirs } from "./state.js";
+import { controls, keys, state, touchDirs } from "./state.js";
 import { getCharacterActionDuration } from "./spriteAnimator.js";
-import { hideOverlay, showOverlay, updateHud } from "./ui.js";
+import { elements, hideOverlay, showOverlay, showStartScreen, updateHud } from "./ui.js?v=20260608-success-button-2";
 import { canFootBoxUseMask } from "./walkMask.js";
 
 export function updateCamera() {
   const world = getLevelWorld();
-  state.camera.x = clamp(state.player.x + state.player.w / 2 - WORLD.width / 2, 0, Math.max(0, world.width - WORLD.width));
-  state.camera.y = clamp(state.player.y + state.player.h / 2 - WORLD.height / 2, 0, Math.max(0, world.height - WORLD.height));
+  state.camera.x = clamp(state.player.x + state.player.w / 2 - state.viewport.width / 2, 0, Math.max(0, world.width - state.viewport.width));
+  state.camera.y = clamp(state.player.y + state.player.h / 2 - state.viewport.height / 2, 0, Math.max(0, world.height - state.viewport.height));
 }
 
 export function initLevel(index) {
@@ -58,7 +58,8 @@ export function initLevel(index) {
     invincible: 0,
   };
   state.camera = { x: 0, y: 0 };
-  state.footstepTimer = 0;
+  state.playerFootstepTimer = 0;
+  state.npcFootstepTimer = 0;
   state.playerAction = null;
   state.playerActionTimer = 0;
   state.playerActionElapsed = 0;
@@ -75,12 +76,21 @@ export function restartGame() {
 
 export function returnToStartScreen() {
   clearFailureRestartTimer();
+  keys.clear();
+  touchDirs.clear();
+  controls.speedBoost = false;
   state.playerHp = balance.playerMaxHp;
-  initLevel(0);
-  state.gameState = "start";
-  elements.startScreen.classList.remove("hidden");
-  elements.gameStage.classList.add("is-start-screen");
+  state.player = null;
+  state.enemies = [];
+  state.obstacles = [];
+  state.exitZone = null;
+  state.statusText = null;
+  state.playerAction = null;
+  state.playerActionTimer = 0;
+  state.playerActionElapsed = 0;
+  state.camera = { x: 0, y: 0 };
   hideOverlay();
+  showStartScreen();
 }
 
 function clearFailureRestartTimer() {
@@ -182,18 +192,20 @@ function movePlayer(dt) {
       input = { x: 0, y: 0 };
     }
   }
-  const movement = moveEntity(state.player, input.x * state.player.speed * dt, input.y * state.player.speed * dt);
+  const boost = state.levelIndex === 0 && controls.speedBoost ? balance.playerBoostMultiplier : 1;
+  const speed = state.player.speed * boost;
+  const movement = moveEntity(state.player, input.x * speed * dt, input.y * speed * dt);
   const isMoving = movement.movedX || movement.movedY;
   state.player.isMoving = isMoving;
 
-  if (state.levelIndex === 0 && isMoving) {
-    state.footstepTimer -= dt;
-    if (state.footstepTimer <= 0) {
-      playFootstepSound();
-      state.footstepTimer = 0.28;
+  if (isMoving) {
+    state.playerFootstepTimer -= dt;
+    if (state.playerFootstepTimer <= 0) {
+      playPlayerFootstepSound();
+      state.playerFootstepTimer = 0.36;
     }
   } else {
-    state.footstepTimer = 0;
+    state.playerFootstepTimer = 0;
   }
 }
 
@@ -202,9 +214,10 @@ function updateMatron(enemy, dt) {
   const next = { ...enemy, x: enemy.x + dx };
   if (next.x < enemy.minX || next.x > enemy.maxX || !canOccupy(next, enemy)) {
     enemy.dir *= -1;
-    return;
+    return false;
   }
   enemy.x = next.x;
+  return true;
 }
 
 export function getMatronVision(enemy) {
@@ -291,7 +304,7 @@ function patrolGuard(guard, dt) {
   if (nextX >= guard.minX && nextX <= guard.maxX && canOccupy(next, guard)) {
     guard.x = nextX;
     guard.dir = guard.patrolDir;
-    return;
+    return true;
   }
 
   guard.patrolDir *= -1;
@@ -301,7 +314,9 @@ function patrolGuard(guard, dt) {
   const retry = { ...guard, x: retryX };
   if (retryX >= guard.minX && retryX <= guard.maxX && canOccupy(retry, guard)) {
     guard.x = retryX;
+    return true;
   }
+  return false;
 }
 
 function moveGuardToward(guard, target, dt) {
@@ -316,15 +331,16 @@ function moveGuardToward(guard, target, dt) {
   if (Math.abs(dx) > 1) guard.dir = dx > 0 ? 1 : -1;
 
   if (!movement.movedX && !movement.movedY) {
-    patrolGuard(guard, dt);
+    return { distance: dist, moved: patrolGuard(guard, dt) };
   }
 
-  return dist;
+  return { distance: dist, moved: movement.movedX || movement.movedY };
 }
 
 function updateGuards(dt) {
   const playerCenter = centerOf(state.player);
   const playerIsAttacking = isPlayerAttacking();
+  let npcMoved = false;
 
   for (const guard of state.enemies) {
     if (!guard.alive) continue;
@@ -346,22 +362,25 @@ function updateGuards(dt) {
     }
 
     if (guard.mode === "chase") {
-      moveGuardToward(guard, playerCenter, dt);
+      npcMoved = moveGuardToward(guard, playerCenter, dt).moved || npcMoved;
     } else if (guard.mode === "return") {
       const homeTarget = { x: guard.homeX + guard.w / 2, y: guard.homeY + guard.h / 2 };
-      const homeDistance = moveGuardToward(guard, homeTarget, dt);
-      if (homeDistance <= 6) {
+      const result = moveGuardToward(guard, homeTarget, dt);
+      npcMoved = result.moved || npcMoved;
+      if (result.distance <= 6) {
         guard.x = guard.homeX;
         guard.y = guard.homeY;
         guard.mode = "patrol";
       }
     } else {
-      patrolGuard(guard, dt);
+      npcMoved = patrolGuard(guard, dt) || npcMoved;
     }
 
+    const playerFootBox = getFootBox(state.player);
+    const touchingGuard = rectsOverlap(playerFootBox, getFootBox(guard));
     const attackBox = getGuardAttackBox(guard);
     guard.attackBox = attackBox;
-    const playerInAttackBox = rectsOverlap(getFootBox(state.player), attackBox);
+    const playerInAttackBox = !touchingGuard && rectsOverlap(playerFootBox, attackBox);
     const guardIsAttacking = guard.attackFlash > 0;
 
     if (!playerIsAttacking && guardIsAttacking && !guard.attackDamageDone && !debug.invincible && playerInAttackBox && state.player.invincible <= 0) {
@@ -378,19 +397,23 @@ function updateGuards(dt) {
       guard.cooldown = balance.guardAttackCooldown;
       guard.attackFlash = getCharacterActionDuration("guard", "attack");
       guard.attackDamageDone = false;
+      playAttackSound();
     }
   }
+
+  updateNpcFootstep(dt, npcMoved);
 }
 
 function isPlayerAttacking() {
-  return state.levelIndex === 1 && state.playerAction === "attack" && state.playerActionTimer > 0;
+  return state.playerAction === "attack" && state.playerActionTimer > 0;
 }
 
 function updateEnemies(dt) {
+  let npcMoved = false;
   for (const enemy of state.enemies) {
     if (!enemy.alive) continue;
     if (enemy.type === "matron") {
-      updateMatron(enemy, dt);
+      npcMoved = updateMatron(enemy, dt) || npcMoved;
       const touchedMatron = rectsOverlap(state.player, enemy) || rectsOverlap(getFootBox(state.player), getFootBox(enemy));
       const caughtByMatron = canSeePlayer(enemy) || touchedMatron;
       if (caughtByMatron && state.player.invincible <= 0) {
@@ -402,7 +425,24 @@ function updateEnemies(dt) {
     }
   }
 
-  if (state.levelIndex === 1) updateGuards(dt);
+  if (state.levelIndex === 1) {
+    updateGuards(dt);
+  } else {
+    updateNpcFootstep(dt, npcMoved);
+  }
+}
+
+function updateNpcFootstep(dt, isMoving) {
+  if (!isMoving) {
+    state.npcFootstepTimer = 0;
+    return;
+  }
+
+  state.npcFootstepTimer -= dt;
+  if (state.npcFootstepTimer <= 0) {
+    playNpcFootstepSound();
+    state.npcFootstepTimer = 0.48;
+  }
 }
 
 function facePlayerToward(entity) {
@@ -416,9 +456,10 @@ function getGuardAttackBox(guard) {
   const footBox = getFootBox(guard);
   const range = balance.guardAttackRange;
   const height = balance.guardAttackHeight;
+  const gap = 12;
   const facingRight = guard.dir >= 0;
   return {
-    x: facingRight ? footBox.x + footBox.w - 2 : footBox.x - range + 2,
+    x: facingRight ? footBox.x + footBox.w + gap : footBox.x - range - gap,
     y: footBox.y + footBox.h / 2 - height / 2,
     w: range,
     h: height,
@@ -444,6 +485,7 @@ export function attack() {
   state.playerAction = "attack";
   state.playerActionTimer = getCharacterActionDuration("player", "attack");
   state.playerActionElapsed = 0;
+  playAttackSound();
 
   for (const guard of state.enemies) {
     if (!guard.alive || !rectsOverlap(hitBox, guard)) continue;
@@ -468,13 +510,7 @@ function failLevel(reason) {
   if (state.gameState !== "playing") return;
   if (state.levelIndex === 0) playCaughtSound();
   const result = failureResults[Math.floor(Math.random() * failureResults.length)];
-  const failedLevelIndex = state.levelIndex;
-  showOverlay("逃离失败", `${reason}。处罚结果：${result}。2 秒后自动回到本关开始。`, false, false);
-  state.failureRestartTimer = setTimeout(() => {
-    state.failureRestartTimer = null;
-    state.playerHp = balance.playerMaxHp;
-    initLevel(failedLevelIndex);
-  }, 2000);
+  showOverlay("被抓住了！", `${reason}。处罚结果：${result}。`, false, true);
 }
 
 function checkExit() {

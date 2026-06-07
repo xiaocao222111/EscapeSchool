@@ -1,19 +1,100 @@
-import { toggleSound, unlockAudio } from "./audio.js";
+import { toggleSound, unlockAudio } from "./audio.js?v=20260607-audio-buffer-1";
 import { balance } from "./config.js";
-import { keys, state, touchDirs } from "./state.js";
-import { attack, initLevel, restartGame, returnToStartScreen } from "./systems.js";
+import { getStartStoryPanels } from "./uiAtlas.js?v=20260608-success-button-2";
+import { controls, keys, state, touchDirs } from "./state.js";
+import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-success-button-2";
 import {
   elements,
+  hideStartStory,
   hideStartScreen,
-  setupLevelSelect,
-  toggleInvincible,
-  updateInvincibleToggle,
+  revealStartStoryPanel,
+  setStartLoading,
+  setupStartStoryPanels,
   updateSoundToggle,
-} from "./ui.js";
+} from "./ui.js?v=20260608-success-button-2";
+
+let lastSoundToggleAt = 0;
+let storySkipRequested = false;
+let resolveStoryDelay = null;
+
+function waitForPreload() {
+  if (!state.preloadPromise) return Promise.resolve();
+  return Promise.race([
+    state.preloadPromise,
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
+}
+
+function delayStory(ms) {
+  if (storySkipRequested) return Promise.resolve();
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(done, ms);
+    resolveStoryDelay = done;
+
+    function done() {
+      clearTimeout(timeout);
+      if (resolveStoryDelay === done) resolveStoryDelay = null;
+      resolve();
+    }
+  });
+}
+
+function skipStartStory(event) {
+  event.preventDefault();
+  storySkipRequested = true;
+  if (resolveStoryDelay) resolveStoryDelay();
+}
+
+async function playStartStory() {
+  const panels = await getStartStoryPanels();
+  if (!panels.length) return;
+
+  setupStartStoryPanels(panels);
+  for (let index = 0; index < panels.length; index += 1) {
+    if (storySkipRequested) break;
+    revealStartStoryPanel(index);
+    await delayStory(2000);
+  }
+  await delayStory(2000);
+  hideStartStory();
+}
+
+async function startGame(event) {
+  unlockAudio();
+  event.preventDefault();
+  if (state.gameState !== "start") return;
+
+  storySkipRequested = false;
+  state.gameState = "story";
+  setStartLoading(true);
+  await Promise.all([waitForPreload(), playStartStory()]);
+  state.playerHp = balance.playerMaxHp;
+  initLevel(0);
+  hideStartScreen();
+}
+
+function handleSoundToggle(event) {
+  event.preventDefault();
+  const now = performance.now();
+  if (event.type === "click" && now - lastSoundToggleAt < 250) return;
+  lastSoundToggleAt = now;
+  toggleSound();
+  updateSoundToggle();
+}
+
+function restartCurrentLevel(event) {
+  event.preventDefault();
+  state.playerHp = balance.playerMaxHp;
+  initLevel(state.levelIndex);
+}
+
+function handleReturnToStart(event) {
+  event.preventDefault();
+  returnToStartScreen();
+}
 
 export function bindInput() {
-  setupLevelSelect();
-
   window.addEventListener("keydown", (event) => {
     unlockAudio();
     const key = event.key.toLowerCase();
@@ -65,46 +146,39 @@ export function bindInput() {
     attack();
   });
 
-  elements.soundToggleBtn.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    toggleSound();
-    updateSoundToggle();
-  });
-
-  elements.startSoundBtn.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    toggleSound();
-    updateSoundToggle();
-  });
-
-  elements.invincibleToggleBtn.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    toggleInvincible();
-  });
-
-  elements.homeToggleBtn.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    returnToStartScreen();
-  });
-
-  elements.startGameBtn.addEventListener("pointerdown", (event) => {
+  elements.speedBtn.addEventListener("pointerdown", (event) => {
     unlockAudio();
     event.preventDefault();
-    state.playerHp = balance.playerMaxHp;
-    initLevel(0);
-    hideStartScreen();
+    controls.speedBoost = state.gameState === "playing" && state.levelIndex === 0;
+    elements.speedBtn.classList.add("active");
+    elements.speedBtn.setPointerCapture(event.pointerId);
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
+    elements.speedBtn.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      controls.speedBoost = false;
+      elements.speedBtn.classList.remove("active");
+    });
   });
 
-  elements.levelSelect.addEventListener("change", () => {
-    const index = Number(elements.levelSelect.value);
-    if (!Number.isInteger(index)) return;
-    state.playerHp = balance.playerMaxHp;
-    initLevel(index);
-  });
+  elements.soundToggleBtn.addEventListener("pointerdown", handleSoundToggle);
+  elements.soundToggleBtn.addEventListener("click", handleSoundToggle);
 
-  elements.restartLevelBtn.addEventListener("click", () => initLevel(state.levelIndex));
-  elements.restartGameBtn.addEventListener("click", restartGame);
+  elements.startSoundBtn.addEventListener("pointerdown", handleSoundToggle);
+  elements.startSoundBtn.addEventListener("click", handleSoundToggle);
+
+  elements.homeToggleBtn.addEventListener("pointerdown", handleReturnToStart);
+  elements.homeToggleBtn.addEventListener("click", handleReturnToStart);
+
+  elements.startGameBtn.addEventListener("pointerdown", startGame);
+  elements.startGameBtn.addEventListener("click", startGame);
+  elements.startStorySkipBtn.addEventListener("pointerdown", skipStartStory);
+  elements.startStorySkipBtn.addEventListener("click", skipStartStory);
+
+  elements.restartLevelBtn.addEventListener("pointerdown", restartCurrentLevel);
+  elements.restartLevelBtn.addEventListener("click", restartCurrentLevel);
+  elements.restartGameBtn.addEventListener("pointerdown", handleReturnToStart);
+  elements.restartGameBtn.addEventListener("click", handleReturnToStart);
 
   updateSoundToggle();
-  updateInvincibleToggle();
 }

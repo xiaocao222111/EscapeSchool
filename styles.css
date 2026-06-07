@@ -10,12 +10,14 @@ html,
 body {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   margin: 0;
   overflow: hidden;
   background: #15191d;
   color: #f6f1df;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   touch-action: none;
+  -webkit-text-size-adjust: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
@@ -23,25 +25,137 @@ body {
 
 button {
   border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  padding: 0;
   font: inherit;
   color: inherit;
   cursor: pointer;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .start-screen {
   position: absolute;
   inset: 0;
   z-index: 8;
-  background-image: url("assets/ui.png");
-  background-size: 100% auto;
-  background-position: left bottom;
+  background-color: #03060d;
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
 .start-screen.hidden {
   display: none;
+}
+
+.start-loading {
+  position: absolute;
+  left: 50%;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border: 2px solid rgba(255, 214, 84, 0.85);
+  border-radius: 999px;
+  background: rgba(8, 8, 6, 0.72);
+  color: #ffe58a;
+  font-size: clamp(14px, 2.8vh, 20px);
+  line-height: 1;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.75);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.start-loading.hidden {
+  display: none;
+}
+
+.start-screen.is-story-playing .start-title-img,
+.start-screen.is-story-playing .start-btn,
+.start-screen.is-story-playing .start-sound-btn,
+.start-screen.is-story-playing .start-loading {
+  display: none;
+}
+
+.start-story {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #03060d;
+}
+
+.start-story.hidden {
+  display: none;
+}
+
+.start-story-skip {
+  position: absolute;
+  top: max(10px, 2cqh);
+  right: max(10px, 2cqw);
+  z-index: 20;
+  padding: 7px 13px;
+  border: 2px solid rgba(255, 229, 138, 0.85);
+  border-radius: 999px;
+  background: rgba(8, 8, 6, 0.72);
+  color: #ffe58a;
+  font-size: clamp(13px, 2.2cqh, 18px);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.75);
+  pointer-events: auto;
+}
+
+.start-story-skip:active {
+  filter: brightness(1.12);
+  transform: scale(0.96);
+}
+
+.start-story-board {
+  position: relative;
+  width: min(100%, calc(100dvh * 1823 / 1039));
+  overflow: hidden;
+}
+
+.start-story-board img {
+  position: absolute;
+  display: block;
+  object-fit: cover;
+  opacity: 0;
+  filter: brightness(0.72);
+  transform: scale(0.985);
+  transform-origin: center;
+  transition: opacity 300ms ease, filter 300ms ease, transform 420ms ease;
+}
+
+.start-story-board img.is-visible {
+  opacity: 1;
+  filter: brightness(1);
+  transform: scale(1);
+}
+
+.start-loading span {
+  width: 1em;
+  height: 1em;
+  border: 2px solid rgba(255, 229, 138, 0.35);
+  border-top-color: #ffe58a;
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .start-title-img {
@@ -50,9 +164,8 @@ button {
   left: 50%;
   width: 44.44%;
   aspect-ratio: 743 / 200;
-  background-image: url("assets/ui.png");
-  background-size: 225.03% auto;
-  background-position: 86.11% 0;
+  background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
   transform: translateX(-50%);
   pointer-events: none;
@@ -77,15 +190,14 @@ button {
 .start-sound-btn span {
   display: block;
   width: 100%;
-  background-image: url("assets/ui.png");
+  background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
   pointer-events: none;
 }
 
 .start-btn span {
   aspect-ratio: 396 / 88;
-  background-size: 422.22% auto;
-  background-position: 31.66% 0;
 }
 
 .start-sound-btn {
@@ -105,8 +217,6 @@ button {
 
 .start-sound-btn span {
   height: 100%;
-  background-size: 811.65% auto;
-  background-position: 13.51% 0;
 }
 
 .start-sound-btn.is-muted {
@@ -115,57 +225,69 @@ button {
 
 .start-sound-btn.is-muted span {
   height: 100%;
-  background-size: 844.44% auto;
-  background-position: 0 3px;
 }
 
 .game-stage.is-start-screen .hud,
 .game-stage.is-start-screen .controls,
+.game-stage.is-start-screen canvas,
 .game-stage.is-start-screen .sound-toggle,
-.game-stage.is-start-screen .debug-toggle,
-.game-stage.is-start-screen .home-toggle,
-.game-stage.is-start-screen .level-select-wrap {
+.game-stage.is-start-screen .home-toggle {
   display: none;
 }
 
 .game-shell {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
   display: grid;
-  width: 100vw;
-  height: 100vh;
   place-items: center;
+  background: #050505;
 }
 
 .game-stage {
-  position: relative;
-  width: min(100vw, calc(100vh * 16 / 9));
-  aspect-ratio: 16 / 9;
-  max-height: 100vh;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(100vw, calc(100dvh * 16 / 9));
+  height: min(100dvh, calc(100vw * 9 / 16));
   overflow: hidden;
   background: #222;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
+  transform: translate(-50%, -50%);
+  container-type: size;
 }
 
 canvas {
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
   touch-action: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
+.game-ui {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .hud {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  display: flex;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  right: calc(max(10px, env(safe-area-inset-right)) + clamp(104px, 17vh, 132px));
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   color: #fff8dc;
-  font-size: clamp(12px, 2vw, 16px);
+  font-size: clamp(13px, 2.8vh, 20px);
   font-weight: 700;
   pointer-events: none;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
@@ -188,63 +310,52 @@ canvas {
 }
 
 .sound-toggle,
-.debug-toggle,
-.home-toggle,
-.level-select-wrap {
-  position: absolute;
-  top: 42px;
-  right: 10px;
-  z-index: 3;
-  min-width: 74px;
-  padding: 6px 9px;
-  border-radius: 8px;
-  background: rgba(23, 30, 36, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff8dc;
-  font-size: clamp(11px, 1.8vw, 14px);
-  font-weight: 800;
-  pointer-events: auto;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
-}
-
-.debug-toggle {
-  top: 78px;
-}
-
 .home-toggle {
-  top: 114px;
-}
-
-.level-select-wrap {
-  top: 150px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.level-select-wrap select {
-  max-width: 92px;
+  position: absolute;
+  right: max(10px, 1.8cqw);
+  z-index: 3;
+  padding: 0;
   border: 0;
-  background: rgba(255, 248, 220, 0.95);
-  color: #1f2933;
-  font: inherit;
-  font-weight: 800;
-  outline: 0;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  color: transparent;
+  font-size: 0;
+  pointer-events: auto;
+  text-shadow: none;
+}
+
+.sound-toggle {
+  top: max(8px, 1.5cqh);
+  width: clamp(78px, 10.5cqw, 112px);
+  aspect-ratio: 87 / 28;
 }
 
 .sound-toggle.is-muted {
-  background: rgba(85, 91, 100, 0.78);
-  color: #d9dde4;
+  aspect-ratio: 88 / 29;
 }
 
-.debug-toggle.is-enabled {
-  background: rgba(238, 181, 73, 0.88);
-  color: #2b1d0e;
+.home-toggle {
+  top: calc(max(8px, 1.5cqh) + clamp(32px, 4.8cqw, 45px));
+  width: clamp(78px, 10.8cqw, 116px);
+  aspect-ratio: 89 / 26;
+}
+
+.sound-toggle:active,
+.home-toggle:active,
+.speed-btn:active,
+.speed-btn.active,
+.attack-btn:active {
+  filter: brightness(1.12);
+  transform: scale(0.96);
 }
 
 .controls {
   position: absolute;
-  inset: auto 18px 16px 18px;
+  left: max(18px, 3cqw);
+  right: max(18px, 3cqw);
+  bottom: max(8px, 1.8cqh);
   display: flex;
   align-items: end;
   justify-content: space-between;
@@ -253,65 +364,79 @@ canvas {
 
 .dpad {
   position: relative;
-  width: clamp(116px, 20vw, 156px);
-  height: clamp(116px, 20vw, 156px);
+  width: clamp(104px, 14cqw, 150px);
+  aspect-ratio: 146 / 145;
+  height: auto;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   pointer-events: auto;
 }
 
 .control-btn,
+.speed-btn,
 .attack-btn {
   position: absolute;
   display: grid;
   place-items: center;
-  background: rgba(23, 30, 36, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  border: 0;
+  box-shadow: none;
 }
 
 .control-btn {
-  width: 34%;
-  height: 34%;
-  border-radius: 8px;
-  font-size: clamp(16px, 3vw, 22px);
+  width: 24%;
+  height: 24%;
+  background: transparent;
+  border-radius: 8%;
+  color: transparent;
+  font-size: 0;
 }
 
 .control-btn:active,
-.control-btn.active,
-.attack-btn:active,
-.attack-btn.active {
-  background: rgba(238, 181, 73, 0.88);
-  color: #2b1d0e;
+.control-btn.active {
+  background: rgba(255, 230, 70, 0.18);
 }
 
 .control-btn.up {
-  top: 0;
-  left: 33%;
+  top: 13%;
+  left: 38%;
 }
 
 .control-btn.left {
-  top: 33%;
-  left: 0;
+  top: 39%;
+  left: 13%;
 }
 
 .control-btn.down {
-  left: 33%;
-  bottom: 0;
+  left: 38%;
+  bottom: 13%;
 }
 
 .control-btn.right {
-  top: 33%;
-  right: 0;
+  top: 39%;
+  right: 13%;
 }
 
+.speed-btn,
 .attack-btn {
   position: relative;
-  width: clamp(72px, 13vw, 104px);
-  height: clamp(72px, 13vw, 104px);
-  border-radius: 50%;
+  width: clamp(82px, 10.8cqw, 120px);
+  aspect-ratio: 104 / 106;
+  height: auto;
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  color: transparent;
+  font-size: 0;
   pointer-events: auto;
-  font-weight: 800;
 }
 
+.speed-btn {
+  background-image: url("assets/speed.png?v=20260608-speed-btn-1");
+}
+
+.speed-btn.is-hidden,
 .attack-btn.is-hidden {
   display: none;
 }
@@ -319,16 +444,26 @@ canvas {
 .overlay {
   position: absolute;
   inset: 0;
+  z-index: 10;
   display: grid;
   place-content: center;
   gap: 14px;
   padding: 24px;
   text-align: center;
   background: rgba(9, 12, 15, 0.72);
+  pointer-events: auto;
 }
 
 .overlay.hidden {
   display: none;
+}
+
+.failure-character {
+  display: none;
+}
+
+.failure-panel {
+  display: contents;
 }
 
 .overlay h1 {
@@ -358,6 +493,116 @@ canvas {
   background: #eeb549;
   color: #24170a;
   font-weight: 800;
+  pointer-events: auto;
+}
+
+.overlay.is-failure {
+  display: grid;
+  place-items: center;
+  gap: 0;
+  padding: 0;
+  background: rgba(9, 12, 15, 0.52);
+}
+
+.overlay.is-failure .failure-panel {
+  position: relative;
+  display: block;
+  width: clamp(360px, 58vh, 560px);
+  aspect-ratio: 321 / 280;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  pointer-events: auto;
+}
+
+.overlay.is-failure h1,
+.overlay.is-failure p {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.overlay.is-failure .failure-character {
+  display: block;
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  width: 31.5%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.overlay.is-failure .overlay-actions {
+  position: absolute;
+  left: 50%;
+  bottom: 8.6%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5.2%;
+  width: 75%;
+  justify-content: center;
+  flex-wrap: nowrap;
+  pointer-events: auto;
+}
+
+.overlay.is-failure .overlay-actions button {
+  min-width: 0;
+  width: 45.5%;
+  aspect-ratio: 114 / 38;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  color: transparent;
+  font-size: 0;
+}
+
+.overlay.is-failure #restartLevelBtn {
+}
+
+.overlay.is-failure #restartGameBtn {
+  width: 45%;
+  aspect-ratio: 113 / 38;
+}
+
+.overlay.is-failure .overlay-actions button:active {
+  filter: brightness(1.08);
+  transform: scale(0.97);
+}
+
+.overlay.is-success .overlay-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.overlay.is-success #restartLevelBtn {
+  display: none;
+}
+
+.overlay.is-success #restartGameBtn {
+  width: clamp(108px, 14cqw, 150px);
+  aspect-ratio: 90 / 35;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent !important;
+  background-image: url("assets/button3.png?v=20260608-success-button-2") !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-size: contain !important;
+  color: transparent;
+  font-size: 0;
+}
+
+.overlay.is-success #restartGameBtn:active {
+  filter: brightness(1.08);
+  transform: scale(0.97);
 }
 
 .rotate-tip {
@@ -381,4 +626,19 @@ canvas {
   .rotate-tip {
     display: grid;
   }
+}
+
+@media (orientation: landscape) {
+  .hud {
+    top: max(8px, 1.5cqh);
+    left: max(8px, 1.5cqw);
+    right: calc(max(10px, 1.8cqw) + clamp(78px, 10.5cqw, 112px));
+    gap: 8px;
+    font-size: clamp(12px, 1.7cqw, 18px);
+  }
+
+  #statusText {
+    max-width: 48vw;
+  }
+
 }

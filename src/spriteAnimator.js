@@ -4,6 +4,9 @@ import { getSpriteRectFromFeet } from "./math.js";
 const atlasCaches = new Map();
 const tintCanvas = document.createElement("canvas");
 const tintCtx = tintCanvas.getContext("2d");
+const warmupCanvas = document.createElement("canvas");
+const warmupCtx = warmupCanvas.getContext("2d");
+const tintedFrameCache = new Map();
 
 function getCache(role) {
   if (!atlasCaches.has(role)) {
@@ -15,10 +18,12 @@ function getCache(role) {
 function loadAtlas(role) {
   const spec = characterAtlases[role];
   const cache = getCache(role);
-  if (!spec || cache.status !== "idle") return;
+  if (!spec) return Promise.resolve(null);
+  if (cache.promise) return cache.promise;
+  if (cache.status !== "idle") return Promise.resolve(cache);
   cache.status = "loading";
 
-  fetch(spec.json)
+  cache.promise = fetch(spec.json)
     .then((response) => {
       if (!response.ok) throw new Error(`Failed to load ${spec.json}`);
       return response.json();
@@ -26,10 +31,14 @@ function loadAtlas(role) {
     .then((data) => {
       cache.actions = groupFrames(data.frames || []);
       cache.status = "ready";
+      return cache;
     })
     .catch(() => {
       cache.status = "failed";
+      return cache;
     });
+
+  return cache.promise;
 }
 
 function groupFrames(frames) {
@@ -69,6 +78,13 @@ export function getCharacterActionDuration(role, action) {
   const frames = getCache(role).actions[action];
   const frameCount = frames?.length || characterAtlases[role]?.frameCounts?.[action] || 1;
   return frameCount * getFrameDuration(role, action);
+}
+
+export function preloadCharacterAtlases() {
+  return Promise.all(Object.keys(characterAtlases).map(async (role) => {
+    await Promise.all([loadAtlas(role), decodeImage(characterAtlases[role].image)]);
+    warmupRole(role);
+  }));
 }
 
 export function drawCharacterSprite(ctx, role, entity, action, options = {}) {
@@ -112,6 +128,13 @@ function drawFrame(ctx, image, source, x, y, w, h, hurt) {
     return;
   }
 
+  const key = `${image.src}:${source.x}:${source.y}:${source.w}:${source.h}:${w}:${h}`;
+  const cached = tintedFrameCache.get(key);
+  if (cached) {
+    ctx.drawImage(cached, x, y);
+    return;
+  }
+
   tintCanvas.width = w;
   tintCanvas.height = h;
   tintCtx.clearRect(0, 0, w, h);
@@ -120,5 +143,46 @@ function drawFrame(ctx, image, source, x, y, w, h, hurt) {
   tintCtx.fillStyle = "rgba(255, 0, 0, 0.3)";
   tintCtx.fillRect(0, 0, w, h);
   tintCtx.globalCompositeOperation = "source-over";
-  ctx.drawImage(tintCanvas, x, y);
+
+  const frameCanvas = document.createElement("canvas");
+  frameCanvas.width = w;
+  frameCanvas.height = h;
+  frameCanvas.getContext("2d").drawImage(tintCanvas, 0, 0);
+  tintedFrameCache.set(key, frameCanvas);
+  ctx.drawImage(frameCanvas, x, y);
+}
+
+function decodeImage(image) {
+  if (!image) return Promise.resolve();
+  if (image.complete && image.naturalWidth > 0) return image.decode?.().catch(() => {}) || Promise.resolve();
+
+  return new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 1500);
+    const done = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    image.addEventListener("load", () => {
+      image.decode?.().catch(() => {}).finally(done);
+    }, { once: true });
+    image.addEventListener("error", done, { once: true });
+  });
+}
+
+function warmupRole(role) {
+  const spec = characterAtlases[role];
+  const cache = getCache(role);
+  const image = spec?.image;
+  if (cache.status !== "ready" || !image?.complete || image.naturalWidth <= 0) return;
+
+  for (const action of Object.keys(cache.actions)) {
+    const frames = cache.actions[action];
+    if (!frames?.length) continue;
+    const frame = frames[0].frame;
+    warmupCanvas.width = frame.w;
+    warmupCanvas.height = frame.h;
+    warmupCtx.clearRect(0, 0, frame.w, frame.h);
+    warmupCtx.drawImage(image, frame.x, frame.y, frame.w, frame.h, 0, 0, frame.w, frame.h);
+    if (action === "hit") drawFrame(warmupCtx, image, frame, 0, 0, frame.w, frame.h, true);
+  }
 }

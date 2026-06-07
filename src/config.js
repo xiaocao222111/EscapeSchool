@@ -1,4 +1,10 @@
 export const WORLD = { width: 960, height: 540 };
+export const MAX_VIEW_WIDTH = 1280;
+
+export const performance = {
+  desktopFps: 30,
+  mobileFps: 20,
+};
 
 export const images = {
   dorm: new Image(),
@@ -10,9 +16,9 @@ export const images = {
   guardAtlas: new Image(),
 };
 
-images.dorm.src = "assets/dorm1-bg.png?v=20260523b";
+images.dorm.src = "assets/dorm1-bg.jpg?v=20260605";
 images.dormWalkMask.src = "assets/dorm-bgwalkarea.svg?v=20260601";
-images.playground.src = "assets/dorm2-bg.png";
+images.playground.src = "assets/dorm2-bg.jpg?v=20260605";
 images.playgroundWalkMask.src = "assets/playground-walkarea.svg?v=20260601";
 images.playerAtlas.src = "assets/lv.png";
 images.matronAtlas.src = "assets/hongdou.png";
@@ -46,9 +52,11 @@ export const characterAtlases = {
 };
 
 export const audioFiles = {
-  bgm: "assets/audio/bgm.wav",
-  caught: "assets/audio/caught.wav",
-  footsteps: ["assets/audio/footstep-1.wav", "assets/audio/footstep-2.wav"],
+  bgm: "assets/audio/bgm.m4a",
+  caught: "assets/audio/caught.m4a",
+  attack: "assets/audio/attack.m4a",
+  playerFootstep: "assets/audio/footstep-1.m4a",
+  npcFootstep: "assets/audio/footstep-2.m4a",
 };
 
 export const debug = {
@@ -59,6 +67,7 @@ export const debug = {
 export const balance = {
   playerMaxHp: 120,
   playerSpeed: 88,
+  playerBoostMultiplier: 1.55,
   playerAttackDamage: 1,
   playerAttackCooldown: 0.36,
   playerAttackRange: 56,
