@@ -1,8 +1,8 @@
 import { toggleSound, unlockAudio } from "./audio.js?v=20260607-audio-buffer-1";
 import { balance } from "./config.js";
-import { getStartStoryPanels } from "./uiAtlas.js?v=20260608-success-button-2";
+import { getStartStoryPanels } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
 import { controls, keys, state, touchDirs } from "./state.js";
-import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-success-button-2";
+import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-keyboard-boost-1";
 import {
   elements,
   hideStartStory,
@@ -11,7 +11,7 @@ import {
   setStartLoading,
   setupStartStoryPanels,
   updateSoundToggle,
-} from "./ui.js?v=20260608-success-button-2";
+} from "./ui.js?v=20260608-keyboard-boost-1";
 
 let lastSoundToggleAt = 0;
 let storySkipRequested = false;
@@ -101,6 +101,11 @@ export function bindInput() {
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "w", "a", "s", "d", "j"].includes(key)) {
       event.preventDefault();
     }
+    if (key === "j" && state.gameState === "playing" && state.levelIndex === 0) {
+      controls.speedBoost = true;
+      elements.speedBtn.classList.add("active");
+      return;
+    }
     if (key === " " || key === "j") {
       attack();
       return;
@@ -109,7 +114,12 @@ export function bindInput() {
   });
 
   window.addEventListener("keyup", (event) => {
-    keys.delete(event.key.toLowerCase());
+    const key = event.key.toLowerCase();
+    if (key === "j") {
+      controls.speedBoost = false;
+      elements.speedBtn.classList.remove("active");
+    }
+    keys.delete(key);
   });
 
   ["contextmenu", "selectstart", "dragstart"].forEach((eventName) => {

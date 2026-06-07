@@ -13,7 +13,7 @@ function createAtlas(imagePath, jsonPath) {
 }
 
 const startAtlas = createAtlas("assets/ui.png", "assets/ui.json");
-const startStoryAtlas = createAtlas("assets/start.png?v=20260608-success-button-2", "assets/start.json?v=20260608-success-button-2");
+const startStoryAtlas = createAtlas("assets/start.png?v=20260608-keyboard-boost-1", "assets/start.json?v=20260608-keyboard-boost-1");
 const gameUiAtlas = createAtlas("assets/ui2.png?v=20260607-crop-fix-1", "assets/ui2.json?v=20260607-crop-fix-1");
 
 function frameName(filename) {

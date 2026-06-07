@@ -1,12 +1,12 @@
-import { bindInput } from "./input.js?v=20260608-success-button-2";
+import { bindInput } from "./input.js?v=20260608-keyboard-boost-1";
 import { images, performance } from "./config.js";
-import { render } from "./render.js?v=20260608-success-button-2";
+import { render } from "./render.js?v=20260608-keyboard-boost-1";
 import { preloadCharacterAtlases } from "./spriteAnimator.js";
 import { state } from "./state.js";
-import { update } from "./systems.js?v=20260608-success-button-2";
-import { applyGameUiAtlas, applyStartScreenAtlas } from "./uiAtlas.js?v=20260608-success-button-2";
-import { elements, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-success-button-2";
-import { resizeViewport } from "./viewport.js?v=20260608-success-button-2";
+import { update } from "./systems.js?v=20260608-keyboard-boost-1";
+import { applyGameUiAtlas, applyStartScreenAtlas } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
+import { elements, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-keyboard-boost-1";
+import { resizeViewport } from "./viewport.js?v=20260608-keyboard-boost-1";
 
 function getFrameInterval() {
   const isMobile = matchMedia("(pointer: coarse), (max-height: 600px)").matches;
