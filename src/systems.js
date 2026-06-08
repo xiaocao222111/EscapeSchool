@@ -15,7 +15,7 @@ import {
 } from "./math.js";
 import { controls, keys, state, touchDirs } from "./state.js";
 import { getCharacterActionDuration } from "./spriteAnimator.js";
-import { elements, hideOverlay, showOverlay, showStartScreen, updateHud } from "./ui.js?v=20260608-progress-6";
+import { elements, hideOverlay, showOverlay, showStartScreen, updateHud } from "./ui.js?v=20260608-progress-7";
 import { canFootBoxUseMask } from "./walkMask.js";
 
 export function updateCamera() {

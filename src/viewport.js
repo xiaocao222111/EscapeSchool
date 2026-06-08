@@ -1,4 +1,4 @@
-import { canvas } from "./ui.js?v=20260608-progress-6";
+import { canvas } from "./ui.js?v=20260608-progress-7";
 
 const baseWidth = 960;
 const baseHeight = 540;

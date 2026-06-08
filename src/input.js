@@ -1,8 +1,8 @@
 import { toggleSound, unlockAudio } from "./audio.js?v=20260607-audio-buffer-1";
 import { balance } from "./config.js";
-import { getStartStoryPanels } from "./uiAtlas.js?v=20260608-progress-6";
+import { getStartStoryPanels } from "./uiAtlas.js?v=20260608-progress-7";
 import { controls, keys, state, touchDirs } from "./state.js";
-import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-progress-6";
+import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-progress-7";
 import {
   elements,
   hideStartStory,
@@ -11,7 +11,7 @@ import {
   setStartLoading,
   setupStartStoryPanels,
   updateSoundToggle,
-} from "./ui.js?v=20260608-progress-6";
+} from "./ui.js?v=20260608-progress-7";
 
 let lastSoundToggleAt = 0;
 let storySkipRequested = false;

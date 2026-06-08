@@ -1,12 +1,12 @@
-import { bindInput } from "./input.js?v=20260608-progress-6";
+import { bindInput } from "./input.js?v=20260608-progress-7";
 import { images, performance } from "./config.js";
-import { render } from "./render.js?v=20260608-progress-6";
+import { render } from "./render.js?v=20260608-progress-7";
 import { preloadCharacterAtlases } from "./spriteAnimator.js";
 import { state } from "./state.js";
-import { update } from "./systems.js?v=20260608-progress-6";
-import { applyGameUiAtlas, applyStartScreenAtlas, getStartStoryPanels } from "./uiAtlas.js?v=20260608-progress-6";
-import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-6";
-import { resizeViewport } from "./viewport.js?v=20260608-progress-6";
+import { update } from "./systems.js?v=20260608-progress-7";
+import { applyGameUiAtlas, applyStartScreenAtlas, getStartStoryPanels } from "./uiAtlas.js?v=20260608-progress-7";
+import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-7";
+import { resizeViewport } from "./viewport.js?v=20260608-progress-7";
 
 const PRELOAD_TASK_TIMEOUT = 4500;
 

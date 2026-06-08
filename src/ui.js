@@ -2,7 +2,7 @@ import { audioState } from "./audio.js?v=20260607-audio-buffer-1";
 import { balance } from "./config.js";
 import { levels } from "./levels.js";
 import { state } from "./state.js";
-import { applyGameUiAtlas, setGameSoundFrame, setStartSoundFrame } from "./uiAtlas.js?v=20260608-progress-6";
+import { applyGameUiAtlas, setGameSoundFrame, setStartSoundFrame } from "./uiAtlas.js?v=20260608-progress-7";
 
 export const canvas = document.getElementById("gameCanvas");
 export const ctx = canvas.getContext("2d");

@@ -12,6 +12,9 @@ function createAtlas(imagePath, jsonPath) {
   };
 }
 
+const IMAGE_LOAD_TIMEOUT = 12000;
+const ATLAS_RETRY_LIMIT = 2;
+
 const startAtlas = createAtlas("assets/ui.png", "assets/ui.json");
 const startStoryAtlas = createAtlas("assets/start.png?v=20260608-keyboard-boost-1", "assets/start.json?v=20260608-keyboard-boost-1");
 const gameUiAtlas = createAtlas("assets/ui2.png?v=20260607-crop-fix-1", "assets/ui2.json?v=20260607-crop-fix-1");
@@ -27,7 +30,9 @@ function decodeImage(image) {
   }
 
   return new Promise((resolve) => {
+    const timeout = setTimeout(() => resolve(false), IMAGE_LOAD_TIMEOUT);
     const done = (loaded) => {
+      clearTimeout(timeout);
       resolve(loaded);
     };
     image.addEventListener("load", () => image.decode?.().then(() => done(true)).catch(() => done(true)) || done(true), { once: true });
@@ -62,14 +67,25 @@ function preloadAtlas(atlas) {
     })
     .catch(() => {
       atlas.status = "failed";
+      atlas.promise = null;
       return atlas;
     });
 
   return atlas.promise;
 }
 
+async function preloadAtlasWithRetry(atlas, retries = ATLAS_RETRY_LIMIT) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const result = await preloadAtlas(atlas);
+    if (result.status === "ready") return result;
+    atlas.status = "idle";
+  }
+  atlas.status = "failed";
+  return atlas;
+}
+
 export function preloadUiAtlas() {
-  return preloadAtlas(startAtlas);
+  return preloadAtlasWithRetry(startAtlas);
 }
 
 export function preloadGameUiAtlas() {
@@ -139,8 +155,12 @@ export async function getStartStoryPanels() {
 
 export async function applyStartScreenAtlas(elements) {
   await preloadUiAtlas();
-  if (startAtlas.status !== "ready") return false;
+  if (startAtlas.status !== "ready") {
+    elements.startScreen.classList.add("is-fallback-menu");
+    return false;
+  }
 
+  elements.startScreen.classList.remove("is-fallback-menu");
   setFrameBackground(startAtlas, elements.startScreen, "start-bg");
   setFrameBackground(startAtlas, elements.startTitleImg, "start-title");
   setFrameBackground(startAtlas, elements.startGameImg, "start-button");
