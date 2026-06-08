@@ -1,16 +1,14 @@
-import { bindInput } from "./input.js?v=20260608-progress-4";
-import { balance, images, performance } from "./config.js";
-import { render } from "./render.js?v=20260608-progress-4";
+import { bindInput } from "./input.js?v=20260608-progress-5";
+import { images, performance } from "./config.js";
+import { render } from "./render.js?v=20260608-progress-5";
 import { preloadCharacterAtlases } from "./spriteAnimator.js";
 import { state } from "./state.js";
-import { initLevel, update } from "./systems.js?v=20260608-progress-4";
+import { update } from "./systems.js?v=20260608-progress-5";
 import { applyGameUiAtlas, applyStartScreenAtlas, getStartStoryPanels } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
-import { elements, hideStartScreen, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-4";
-import { resizeViewport } from "./viewport.js?v=20260608-progress-4";
+import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-5";
+import { resizeViewport } from "./viewport.js?v=20260608-progress-5";
 
 const PRELOAD_TASK_TIMEOUT = 4500;
-const AUTO_START_DELAY = 360;
-let startupAutoStarted = false;
 
 function getFrameInterval() {
   const isMobile = matchMedia("(pointer: coarse), (max-height: 600px)").matches;
@@ -71,21 +69,6 @@ function preloadWithProgress(tasks) {
     })))
     .finally(() => {
       state.preloadReady = true;
-      if (state.gameState === "start" && !startupAutoStarted) {
-        startupAutoStarted = true;
-        setStartLoading(true, {
-          progress: 1,
-          label: "进入游戏",
-          blockStart: true,
-        });
-        setTimeout(() => {
-          if (state.gameState !== "start") return;
-          state.playerHp = balance.playerMaxHp;
-          initLevel(0);
-          hideStartScreen();
-        }, AUTO_START_DELAY);
-        return;
-      }
       setStartLoading(false, { progress: 1, label: "加载完成" });
     });
 }

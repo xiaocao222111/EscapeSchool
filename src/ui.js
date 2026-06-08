@@ -86,6 +86,7 @@ export function setStartLoading(isLoading, options = {}) {
   state.preloadLabel = label;
 
   elements.startLoading.classList.toggle("hidden", !isLoading);
+  elements.startScreen.classList.toggle("is-preloading", isLoading && state.gameState === "start");
   elements.startGameBtn.disabled = blockStart;
   elements.startGameBtn.setAttribute("aria-busy", blockStart ? "true" : "false");
   elements.startLoadingText.textContent = label;

@@ -79,6 +79,12 @@ button {
   display: none;
 }
 
+.start-screen.is-preloading .start-title-img,
+.start-screen.is-preloading .start-btn,
+.start-screen.is-preloading .start-sound-btn {
+  display: none;
+}
+
 .start-screen.is-story-playing .start-title-img,
 .start-screen.is-story-playing .start-btn,
 .start-screen.is-story-playing .start-sound-btn,
