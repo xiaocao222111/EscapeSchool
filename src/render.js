@@ -3,8 +3,8 @@ import { levels } from "./levels.js";
 import { getFeetPoint, getLevelWorld, getSpriteRectFromFeet } from "./math.js";
 import { state } from "./state.js";
 import { drawCharacterSprite, getCharacterActionDuration, getCharacterSpriteSize } from "./spriteAnimator.js";
-import { isPlayerHiding } from "./systems.js?v=20260608-progress-3";
-import { ctx } from "./ui.js?v=20260608-progress-3";
+import { isPlayerHiding } from "./systems.js?v=20260608-progress-4";
+import { ctx } from "./ui.js?v=20260608-progress-4";
 import { drawWalkMaskDebug } from "./walkMask.js";
 
 const backgroundCache = new Map();
