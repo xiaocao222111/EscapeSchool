@@ -21,16 +21,17 @@ function frameName(filename) {
 }
 
 function decodeImage(image) {
-  if (image.complete && image.naturalWidth > 0) return image.decode?.().catch(() => {}) || Promise.resolve();
+  if (image.complete) {
+    if (image.naturalWidth <= 0) return Promise.resolve(false);
+    return (image.decode?.().then(() => true).catch(() => true)) || Promise.resolve(true);
+  }
 
   return new Promise((resolve) => {
-    const timeout = setTimeout(resolve, 1500);
-    const done = () => {
-      clearTimeout(timeout);
-      resolve();
+    const done = (loaded) => {
+      resolve(loaded);
     };
-    image.addEventListener("load", () => image.decode?.().catch(() => {}).finally(done), { once: true });
-    image.addEventListener("error", done, { once: true });
+    image.addEventListener("load", () => image.decode?.().then(() => done(true)).catch(() => done(true)) || done(true), { once: true });
+    image.addEventListener("error", () => done(false), { once: true });
   });
 }
 
@@ -46,7 +47,8 @@ function preloadAtlas(atlas) {
     }),
     decodeImage(atlas.image),
   ])
-    .then(([data]) => {
+    .then(([data, imageReady]) => {
+      if (!imageReady || atlas.image.naturalWidth <= 0) throw new Error(`Failed to load ${atlas.image.src}`);
       atlas.frames.clear();
       atlas.meta = {
         width: data.meta?.size?.w || atlas.image.naturalWidth || 0,
@@ -137,12 +139,13 @@ export async function getStartStoryPanels() {
 
 export async function applyStartScreenAtlas(elements) {
   await preloadUiAtlas();
-  if (startAtlas.status !== "ready") return;
+  if (startAtlas.status !== "ready") return false;
 
   setFrameBackground(startAtlas, elements.startScreen, "start-bg");
   setFrameBackground(startAtlas, elements.startTitleImg, "start-title");
   setFrameBackground(startAtlas, elements.startGameImg, "start-button");
   setStartSoundFrame(elements, false);
+  return true;
 }
 
 export function setStartSoundFrame(elements, muted) {
@@ -152,7 +155,7 @@ export function setStartSoundFrame(elements, muted) {
 
 export async function applyGameUiAtlas(elements) {
   await preloadGameUiAtlas();
-  if (gameUiAtlas.status !== "ready") return;
+  if (gameUiAtlas.status !== "ready") return false;
 
   setFrameBackground(gameUiAtlas, elements.dpad, "btn_move");
   setFrameBackground(gameUiAtlas, elements.attackBtn, "btn_attack");
@@ -162,6 +165,7 @@ export async function applyGameUiAtlas(elements) {
   setFrameBackground(gameUiAtlas, elements.restartGameBtn, "popup_button2");
   setFrameImage(gameUiAtlas, elements.failureCharacter, "pic");
   setGameSoundFrame(elements, false);
+  return true;
 }
 
 export function setGameSoundFrame(elements, muted) {

@@ -1,12 +1,12 @@
-import { bindInput } from "./input.js?v=20260608-progress-5";
+import { bindInput } from "./input.js?v=20260608-progress-6";
 import { images, performance } from "./config.js";
-import { render } from "./render.js?v=20260608-progress-5";
+import { render } from "./render.js?v=20260608-progress-6";
 import { preloadCharacterAtlases } from "./spriteAnimator.js";
 import { state } from "./state.js";
-import { update } from "./systems.js?v=20260608-progress-5";
-import { applyGameUiAtlas, applyStartScreenAtlas, getStartStoryPanels } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
-import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-5";
-import { resizeViewport } from "./viewport.js?v=20260608-progress-5";
+import { update } from "./systems.js?v=20260608-progress-6";
+import { applyGameUiAtlas, applyStartScreenAtlas, getStartStoryPanels } from "./uiAtlas.js?v=20260608-progress-6";
+import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-6";
+import { resizeViewport } from "./viewport.js?v=20260608-progress-6";
 
 const PRELOAD_TASK_TIMEOUT = 4500;
 
@@ -55,6 +55,8 @@ function preloadWithProgress(tasks) {
   }
 
   function runTask(task) {
+    if (task.critical) return Promise.resolve().then(task.run);
+
     return Promise.race([
       Promise.resolve().then(task.run),
       new Promise((resolve) => setTimeout(resolve, PRELOAD_TASK_TIMEOUT)),
@@ -103,7 +105,7 @@ function loop(time) {
 bindInput();
 resizeViewport();
 state.preloadPromise = preloadWithProgress([
-  { label: "界面资源", run: () => applyStartScreenAtlas(elements).then(updateSoundToggle) },
+  { label: "界面资源", critical: true, run: () => applyStartScreenAtlas(elements).then(updateSoundToggle) },
   { label: "场景地图", run: preloadGameImages },
   { label: "角色动画", run: preloadCharacterAtlases },
   { label: "游戏控件", run: () => applyGameUiAtlas(elements).then(updateSoundToggle) },
