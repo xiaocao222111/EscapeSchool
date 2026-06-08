@@ -1,12 +1,14 @@
-import { bindInput } from "./input.js?v=20260608-progress-1";
+import { bindInput } from "./input.js?v=20260608-progress-3";
 import { images, performance } from "./config.js";
-import { render } from "./render.js?v=20260608-progress-1";
+import { render } from "./render.js?v=20260608-progress-3";
 import { preloadCharacterAtlases } from "./spriteAnimator.js";
 import { state } from "./state.js";
-import { update } from "./systems.js?v=20260608-progress-1";
+import { update } from "./systems.js?v=20260608-progress-3";
 import { applyGameUiAtlas, applyStartScreenAtlas, getStartStoryPanels } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
-import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-1";
-import { resizeViewport } from "./viewport.js?v=20260608-progress-1";
+import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-3";
+import { resizeViewport } from "./viewport.js?v=20260608-progress-3";
+
+const PRELOAD_TASK_TIMEOUT = 4500;
 
 function getFrameInterval() {
   const isMobile = matchMedia("(pointer: coarse), (max-height: 600px)").matches;
@@ -41,15 +43,25 @@ function preloadWithProgress(tasks) {
   let completed = 0;
   const total = tasks.length;
 
-  setStartLoading(true, { progress: 0, label: "资源加载中" });
+  setStartLoading(true, { progress: 0, label: "资源加载中", blockStart: false });
 
   function updateProgress(label) {
     const progress = total > 0 ? completed / total : 1;
-    setStartLoading(true, { progress, label });
+    setStartLoading(true, {
+      progress,
+      label,
+      blockStart: state.gameState !== "start",
+    });
   }
 
-  return Promise.all(tasks.map((task) => Promise.resolve()
-    .then(task.run)
+  function runTask(task) {
+    return Promise.race([
+      Promise.resolve().then(task.run),
+      new Promise((resolve) => setTimeout(resolve, PRELOAD_TASK_TIMEOUT)),
+    ]);
+  }
+
+  return Promise.all(tasks.map((task) => runTask(task)
     .catch(() => null)
     .finally(() => {
       completed += 1;

@@ -2,7 +2,7 @@ import { toggleSound, unlockAudio } from "./audio.js?v=20260607-audio-buffer-1";
 import { balance } from "./config.js";
 import { getStartStoryPanels } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
 import { controls, keys, state, touchDirs } from "./state.js";
-import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-progress-1";
+import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-progress-3";
 import {
   elements,
   hideStartStory,
@@ -11,11 +11,13 @@ import {
   setStartLoading,
   setupStartStoryPanels,
   updateSoundToggle,
-} from "./ui.js?v=20260608-progress-1";
+} from "./ui.js?v=20260608-progress-3";
 
 let lastSoundToggleAt = 0;
 let storySkipRequested = false;
 let resolveStoryDelay = null;
+
+const START_STORY_TIMEOUT = 1600;
 
 function waitForPreload() {
   if (!state.preloadPromise) return Promise.resolve();
@@ -47,7 +49,10 @@ function skipStartStory(event) {
 }
 
 async function playStartStory() {
-  const panels = await getStartStoryPanels();
+  const panels = await Promise.race([
+    getStartStoryPanels(),
+    new Promise((resolve) => setTimeout(() => resolve([]), START_STORY_TIMEOUT)),
+  ]);
   if (!panels.length) return;
 
   setupStartStoryPanels(panels);
@@ -70,6 +75,7 @@ async function startGame(event) {
   setStartLoading(true, {
     progress: state.preloadProgress,
     label: state.preloadReady ? "准备进入" : state.preloadLabel,
+    blockStart: true,
   });
   await Promise.all([waitForPreload(), playStartStory()]);
   state.playerHp = balance.playerMaxHp;

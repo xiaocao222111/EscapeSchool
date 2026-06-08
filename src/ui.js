@@ -61,6 +61,7 @@ export function showStartScreen() {
   setStartLoading(!state.preloadReady, {
     progress: state.preloadProgress,
     label: state.preloadReady ? "加载完成" : state.preloadLabel,
+    blockStart: false,
   });
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   state.gameState = "start";
@@ -79,13 +80,14 @@ export function setStartLoading(isLoading, options = {}) {
   const progress = Math.max(0, Math.min(1, options.progress ?? state.preloadProgress ?? 0));
   const percent = Math.round(progress * 100);
   const label = options.label || state.preloadLabel || "资源加载中";
+  const blockStart = options.blockStart ?? isLoading;
 
   state.preloadProgress = progress;
   state.preloadLabel = label;
 
   elements.startLoading.classList.toggle("hidden", !isLoading);
-  elements.startGameBtn.disabled = isLoading;
-  elements.startGameBtn.setAttribute("aria-busy", isLoading ? "true" : "false");
+  elements.startGameBtn.disabled = blockStart;
+  elements.startGameBtn.setAttribute("aria-busy", blockStart ? "true" : "false");
   elements.startLoadingText.textContent = label;
   elements.startLoadingPercent.textContent = `${percent}%`;
   elements.startProgress.setAttribute("aria-valuenow", String(percent));
