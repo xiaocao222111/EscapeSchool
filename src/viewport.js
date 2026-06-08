@@ -1,4 +1,4 @@
-import { canvas } from "./ui.js?v=20260608-keyboard-boost-1";
+import { canvas } from "./ui.js?v=20260608-progress-1";
 
 const baseWidth = 960;
 const baseHeight = 540;

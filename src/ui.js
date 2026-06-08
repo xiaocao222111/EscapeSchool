@@ -16,6 +16,10 @@ export const elements = {
   startSoundBtn: document.getElementById("startSoundBtn"),
   startSoundImg: document.getElementById("startSoundImg"),
   startLoading: document.getElementById("startLoading"),
+  startLoadingText: document.getElementById("startLoadingText"),
+  startLoadingPercent: document.getElementById("startLoadingPercent"),
+  startProgress: document.querySelector(".start-progress"),
+  startProgressFill: document.getElementById("startProgressFill"),
   startStory: document.getElementById("startStory"),
   startStorySkipBtn: document.getElementById("startStorySkipBtn"),
   startStoryBoard: document.getElementById("startStoryBoard"),
@@ -54,7 +58,10 @@ export function showStartScreen() {
   elements.startScreen.classList.remove("hidden");
   elements.gameStage.classList.add("is-start-screen");
   hideStartStory();
-  setStartLoading(false);
+  setStartLoading(!state.preloadReady, {
+    progress: state.preloadProgress,
+    label: state.preloadReady ? "加载完成" : state.preloadLabel,
+  });
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   state.gameState = "start";
 }
@@ -68,10 +75,21 @@ export function hideStartScreen() {
   });
 }
 
-export function setStartLoading(isLoading) {
+export function setStartLoading(isLoading, options = {}) {
+  const progress = Math.max(0, Math.min(1, options.progress ?? state.preloadProgress ?? 0));
+  const percent = Math.round(progress * 100);
+  const label = options.label || state.preloadLabel || "资源加载中";
+
+  state.preloadProgress = progress;
+  state.preloadLabel = label;
+
   elements.startLoading.classList.toggle("hidden", !isLoading);
   elements.startGameBtn.disabled = isLoading;
   elements.startGameBtn.setAttribute("aria-busy", isLoading ? "true" : "false");
+  elements.startLoadingText.textContent = label;
+  elements.startLoadingPercent.textContent = `${percent}%`;
+  elements.startProgress.setAttribute("aria-valuenow", String(percent));
+  elements.startProgressFill.style.transform = `scaleX(${progress})`;
 }
 
 export function setupStartStoryPanels(panels) {

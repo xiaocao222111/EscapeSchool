@@ -2,7 +2,7 @@ import { toggleSound, unlockAudio } from "./audio.js?v=20260607-audio-buffer-1";
 import { balance } from "./config.js";
 import { getStartStoryPanels } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
 import { controls, keys, state, touchDirs } from "./state.js";
-import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-keyboard-boost-1";
+import { attack, initLevel, returnToStartScreen } from "./systems.js?v=20260608-progress-1";
 import {
   elements,
   hideStartStory,
@@ -11,7 +11,7 @@ import {
   setStartLoading,
   setupStartStoryPanels,
   updateSoundToggle,
-} from "./ui.js?v=20260608-keyboard-boost-1";
+} from "./ui.js?v=20260608-progress-1";
 
 let lastSoundToggleAt = 0;
 let storySkipRequested = false;
@@ -67,7 +67,10 @@ async function startGame(event) {
 
   storySkipRequested = false;
   state.gameState = "story";
-  setStartLoading(true);
+  setStartLoading(true, {
+    progress: state.preloadProgress,
+    label: state.preloadReady ? "准备进入" : state.preloadLabel,
+  });
   await Promise.all([waitForPreload(), playStartStory()]);
   state.playerHp = balance.playerMaxHp;
   initLevel(0);

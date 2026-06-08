@@ -1,12 +1,12 @@
-import { bindInput } from "./input.js?v=20260608-keyboard-boost-1";
+import { bindInput } from "./input.js?v=20260608-progress-1";
 import { images, performance } from "./config.js";
-import { render } from "./render.js?v=20260608-keyboard-boost-1";
+import { render } from "./render.js?v=20260608-progress-1";
 import { preloadCharacterAtlases } from "./spriteAnimator.js";
 import { state } from "./state.js";
-import { update } from "./systems.js?v=20260608-keyboard-boost-1";
-import { applyGameUiAtlas, applyStartScreenAtlas } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
-import { elements, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-keyboard-boost-1";
-import { resizeViewport } from "./viewport.js?v=20260608-keyboard-boost-1";
+import { update } from "./systems.js?v=20260608-progress-1";
+import { applyGameUiAtlas, applyStartScreenAtlas, getStartStoryPanels } from "./uiAtlas.js?v=20260608-keyboard-boost-1";
+import { elements, setStartLoading, showStartScreen, updateSoundToggle } from "./ui.js?v=20260608-progress-1";
+import { resizeViewport } from "./viewport.js?v=20260608-progress-1";
 
 function getFrameInterval() {
   const isMobile = matchMedia("(pointer: coarse), (max-height: 600px)").matches;
@@ -35,6 +35,30 @@ function preloadGameImages() {
     decodeImage(images.playground),
     decodeImage(images.playgroundWalkMask),
   ]);
+}
+
+function preloadWithProgress(tasks) {
+  let completed = 0;
+  const total = tasks.length;
+
+  setStartLoading(true, { progress: 0, label: "资源加载中" });
+
+  function updateProgress(label) {
+    const progress = total > 0 ? completed / total : 1;
+    setStartLoading(true, { progress, label });
+  }
+
+  return Promise.all(tasks.map((task) => Promise.resolve()
+    .then(task.run)
+    .catch(() => null)
+    .finally(() => {
+      completed += 1;
+      updateProgress(completed >= total ? "加载完成" : task.label);
+    })))
+    .finally(() => {
+      state.preloadReady = true;
+      setStartLoading(false, { progress: 1, label: "加载完成" });
+    });
 }
 
 function loop(time) {
@@ -66,12 +90,13 @@ function loop(time) {
 
 bindInput();
 resizeViewport();
-state.preloadPromise = Promise.all([
-  preloadCharacterAtlases(),
-  preloadGameImages(),
-  applyGameUiAtlas(elements).then(updateSoundToggle),
+state.preloadPromise = preloadWithProgress([
+  { label: "界面资源", run: () => applyStartScreenAtlas(elements).then(updateSoundToggle) },
+  { label: "场景地图", run: preloadGameImages },
+  { label: "角色动画", run: preloadCharacterAtlases },
+  { label: "游戏控件", run: () => applyGameUiAtlas(elements).then(updateSoundToggle) },
+  { label: "剧情图片", run: getStartStoryPanels },
 ]);
-applyStartScreenAtlas(elements).then(updateSoundToggle);
 showStartScreen();
 window.addEventListener("resize", () => {
   if (resizeViewport()) state.lastFrameTime = 0;
